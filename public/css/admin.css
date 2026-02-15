@@ -1056,3 +1056,404 @@
     padding-left: 0;
   }
 }
+
+/* Premium admin surface refinements */
+.page-content {
+  padding: 1.45rem;
+  gap: 1.15rem;
+}
+
+.admin-layout,
+.stack,
+.overview-top {
+  gap: 1.12rem;
+}
+
+.sidebar-tools {
+  padding: 0.7rem 0.65rem 0.3rem;
+}
+
+.sidebar-settings-trigger {
+  color: #ffffff;
+}
+
+.sidebar-settings-glyph {
+  width: 3.15rem;
+  height: 3.15rem;
+  border-radius: 16px;
+  background: linear-gradient(160deg, #2279b5 0%, #1a507d 100%);
+  border: 1px solid rgba(255, 255, 255, 0.92);
+  box-shadow:
+    0 16px 28px rgba(6, 27, 44, 0.34),
+    inset 0 1px 0 rgba(255, 255, 255, 0.34);
+}
+
+.sidebar-settings-glyph svg {
+  width: 1.55rem;
+  height: 1.55rem;
+}
+
+.device-link svg {
+  width: 0.98rem;
+  height: 0.98rem;
+}
+
+.icon-actions,
+.chore-action-row,
+.admin-instance-actions,
+.board-task-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.38rem;
+}
+
+.icon-action-btn {
+  width: 2rem;
+  height: 2rem;
+  min-width: 2rem;
+  min-height: 2rem;
+  border-radius: 12px;
+  padding: 0;
+  flex: 0 0 2rem;
+  border: 1px solid rgba(176, 198, 217, 0.86);
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.92) 0%, rgba(237, 246, 253, 0.82) 100%);
+  color: #1f4965;
+  box-shadow:
+    0 8px 16px rgba(8, 26, 41, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.icon-action-btn svg {
+  width: 0.9rem;
+  height: 0.9rem;
+}
+
+.icon-action-btn.warn {
+  color: #a53d29;
+  border-color: rgba(210, 136, 115, 0.86);
+  background: linear-gradient(160deg, rgba(255, 248, 246, 0.92) 0%, rgba(255, 236, 229, 0.9) 100%);
+}
+
+.chore-state-badge {
+  min-width: 4.9rem;
+  justify-content: center;
+}
+
+.board-panel {
+  gap: 0.86rem;
+}
+
+.board-date-controls {
+  gap: 0.56rem;
+  align-items: flex-end;
+}
+
+.board-date-meta strong {
+  color: #134365;
+}
+
+.board-summary-grid .board-kpi {
+  border-radius: 13px;
+  border: 1px solid rgba(186, 207, 223, 0.8);
+}
+
+.board-column {
+  border: 1px solid rgba(187, 207, 224, 0.72);
+  background: rgba(248, 252, 255, 0.68);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  padding: 0.68rem;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.board-task-card {
+  border: 1px solid rgba(186, 206, 223, 0.74);
+  background: rgba(255, 255, 255, 0.82);
+  border-radius: 14px;
+  padding: 0.56rem 0.6rem;
+  box-shadow: 0 8px 16px rgba(8, 27, 43, 0.08);
+}
+
+.board-task-card.done {
+  background: linear-gradient(160deg, rgba(240, 251, 244, 0.9) 0%, rgba(234, 247, 238, 0.86) 100%);
+}
+
+.board-task-card.overdue {
+  background: linear-gradient(160deg, rgba(255, 247, 239, 0.92) 0%, rgba(255, 237, 226, 0.9) 100%);
+}
+
+.week-plan-nav {
+  grid-template-columns: 2rem minmax(190px, auto) 2rem minmax(170px, 230px);
+}
+
+.week-plan-nav-label {
+  border: 1px solid rgba(184, 204, 220, 0.82);
+  border-radius: 14px;
+  background: rgba(247, 252, 255, 0.78);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.84);
+}
+
+.admin-week-day {
+  border: 1px solid rgba(186, 206, 224, 0.74);
+  border-radius: 16px;
+  background: rgba(247, 252, 255, 0.7);
+  backdrop-filter: blur(10px);
+}
+
+.admin-week-day.is-today {
+  border-color: rgba(129, 184, 232, 0.84);
+  background: rgba(234, 247, 255, 0.78);
+}
+
+.admin-instance-card {
+  border: 1px solid rgba(188, 207, 223, 0.78);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.86);
+}
+
+.admin-instance-card.done {
+  background: linear-gradient(160deg, rgba(239, 250, 243, 0.9) 0%, rgba(234, 247, 238, 0.86) 100%);
+}
+
+.admin-instance-card.overdue {
+  background: linear-gradient(160deg, rgba(255, 247, 240, 0.94) 0%, rgba(255, 236, 226, 0.9) 100%);
+}
+
+.admin-instance-card.instance-disabled {
+  background: rgba(243, 247, 251, 0.9);
+}
+
+.stats-highlight-card,
+.stats-week-item,
+.week-owner-preview,
+.instance-preview,
+.dialog-section,
+.chore-schedule-block,
+.toggle-row {
+  border-radius: 14px;
+  border-color: rgba(188, 208, 223, 0.78);
+  background: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(10px);
+}
+
+.repeat-mode-option,
+.weekday-option {
+  border-color: rgba(186, 205, 220, 0.82);
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.repeat-mode-option:has(input:checked),
+.weekday-option:has(input:checked) {
+  border-color: rgba(119, 181, 236, 0.92);
+  background: rgba(223, 241, 255, 0.78);
+}
+
+.dialog-panel {
+  border: 1px solid rgba(183, 204, 220, 0.86);
+  border-radius: 20px;
+  box-shadow: 0 26px 50px rgba(6, 23, 38, 0.34);
+}
+
+.dialog-body {
+  padding: 1.08rem;
+}
+
+@media (max-width: 980px) {
+  .page-content {
+    padding: 1.05rem;
+  }
+
+  .segmented-control.segmented-wide {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* Shadcn-inspired admin components */
+.page-content {
+  padding: 1.1rem;
+  gap: 1rem;
+}
+
+.admin-layout,
+.stack,
+.overview-top {
+  gap: 1rem;
+}
+
+.topbar-actions-compact {
+  gap: 0.42rem;
+}
+
+.device-link {
+  border-radius: 10px;
+  width: 1.95rem;
+  height: 1.95rem;
+}
+
+.sidebar-tools {
+  padding: 0.55rem 0.4rem 0.2rem;
+}
+
+.sidebar-settings-trigger {
+  color: #0f172a;
+}
+
+.sidebar-settings-glyph {
+  width: 2.45rem;
+  height: 2.45rem;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #0f172a;
+  box-shadow: none;
+}
+
+.sidebar-settings-glyph svg {
+  width: 1.2rem;
+  height: 1.2rem;
+}
+
+.sidebar-settings-trigger:hover .sidebar-settings-glyph,
+.sidebar-settings-trigger:focus-visible .sidebar-settings-glyph {
+  background: #f1f5f9;
+  color: #0f172a;
+  border-color: #cbd5e1;
+}
+
+.icon-actions,
+.chore-action-row,
+.admin-instance-actions,
+.board-task-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.32rem;
+}
+
+.icon-action-btn {
+  width: 1.9rem;
+  height: 1.9rem;
+  min-width: 1.9rem;
+  min-height: 1.9rem;
+  flex: 0 0 1.9rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #334155;
+  box-shadow: none;
+}
+
+.icon-action-btn svg {
+  width: 0.86rem;
+  height: 0.86rem;
+}
+
+.icon-action-btn:hover,
+.icon-action-btn:focus-visible {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.icon-action-btn.warn {
+  color: #b91c1c;
+  border-color: #fecaca;
+  background: #fff5f5;
+}
+
+.chore-state-badge {
+  min-width: 4.5rem;
+}
+
+.board-column,
+.admin-week-day,
+.admin-instance-card,
+.stats-highlight-card,
+.stats-week-item,
+.week-owner-preview,
+.instance-preview,
+.dialog-section,
+.chore-schedule-block,
+.toggle-row,
+.week-plan-nav-label {
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.board-panel {
+  gap: 0.72rem;
+}
+
+.board-date-controls {
+  gap: 0.45rem;
+}
+
+.board-summary-grid .board-kpi {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.board-summary-grid .board-kpi.ok {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+}
+
+.board-summary-grid .board-kpi.warn {
+  border-color: #fed7aa;
+  background: #fff7ed;
+}
+
+.board-task-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: none;
+}
+
+.board-task-card.done,
+.admin-instance-card.done {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+}
+
+.board-task-card.overdue,
+.admin-instance-card.overdue {
+  border-color: #fed7aa;
+  background: #fff7ed;
+}
+
+.admin-instance-card.instance-disabled {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+.admin-week-day.is-today {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+}
+
+.repeat-mode-option,
+.weekday-option {
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  background: #ffffff;
+}
+
+.repeat-mode-option:has(input:checked),
+.weekday-option:has(input:checked) {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.dialog-panel {
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  box-shadow: 0 12px 34px rgba(15, 23, 42, 0.16);
+}
+
+.dialog-body {
+  padding: 1rem;
+}

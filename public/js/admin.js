@@ -863,6 +863,77 @@ function syncStatsInputs({ setRangeValue = true } = {}) {
     const optionExists = Array.from(statsRangeDaysSelect.options).some((option) => option.value === optionValue);
     statsRangeDaysSelect.value = optionExists ? optionValue : 'custom';
   }
+  if (statsRangeDaysSelect) {
+    syncSegmentedControl(statsRangeDaysSelect);
+  }
+}
+
+function syncSegmentedControl(selectEl) {
+  if (!(selectEl instanceof HTMLSelectElement) || !selectEl.id) return;
+
+  const control = document.querySelector(`.segmented-control[data-segment-for="${selectEl.id}"]`);
+  if (!(control instanceof HTMLElement)) return;
+
+  const optionsByValue = new Map(Array.from(selectEl.options).map((option) => [option.value, option.textContent || option.value]));
+  const currentValue = String(selectEl.value || '');
+
+  control.querySelectorAll('button[data-segment-value]').forEach((button) => {
+    if (!(button instanceof HTMLButtonElement)) return;
+    const value = String(button.dataset.segmentValue || '');
+    const isSelected = value === currentValue;
+    button.classList.toggle('is-selected', isSelected);
+    button.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
+    if (optionsByValue.has(value)) {
+      button.textContent = optionsByValue.get(value);
+    }
+  });
+}
+
+function bindSegmentedControl(selectEl) {
+  if (!(selectEl instanceof HTMLSelectElement) || !selectEl.id) return;
+
+  const control = document.querySelector(`.segmented-control[data-segment-for="${selectEl.id}"]`);
+  if (!(control instanceof HTMLElement)) return;
+  if (control.dataset.segmentBound === '1') {
+    syncSegmentedControl(selectEl);
+    return;
+  }
+
+  control.dataset.segmentBound = '1';
+
+  control.addEventListener('click', (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const button = target.closest('button[data-segment-value]');
+    if (!(button instanceof HTMLButtonElement)) return;
+
+    const value = String(button.dataset.segmentValue || '');
+    if (!value || selectEl.value === value) return;
+
+    const hasValue = Array.from(selectEl.options).some((option) => option.value === value);
+    if (!hasValue) return;
+
+    selectEl.value = value;
+    selectEl.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+
+  selectEl.addEventListener('change', () => {
+    syncSegmentedControl(selectEl);
+  });
+
+  syncSegmentedControl(selectEl);
+}
+
+function bindSegmentedControls() {
+  document.querySelectorAll('.segmented-control[data-segment-for]').forEach((control) => {
+    if (!(control instanceof HTMLElement)) return;
+    const targetId = control.dataset.segmentFor;
+    if (!targetId) return;
+    const selectEl = document.getElementById(targetId);
+    if (selectEl instanceof HTMLSelectElement) {
+      bindSegmentedControl(selectEl);
+    }
+  });
 }
 
 function applyStatsRange(days, { anchorEnd = state.statsEnd, setCustom = false } = {}) {
@@ -1213,8 +1284,8 @@ function applyStaticTranslations() {
   setText('#stats-weekly-title', t('statsWeeklyMomentum'));
   setLabelText(statsStartInput?.closest('label'), t('statsFrom'));
   setLabelText(statsEndInput?.closest('label'), t('statsTo'));
-  setLabelText(statsRangeDaysSelect?.closest('label'), t('statsRange'));
-  setLabelText(settingsGamificationSelectEl?.closest('label'), t('gamificationModeLabel'));
+  setText('#stats-range-label', t('statsRange'));
+  setText('#settings-gamification-label', t('gamificationModeLabel'));
 
   if (settingsGamificationSelectEl) {
     Array.from(settingsGamificationSelectEl.options).forEach((option) => {
@@ -1284,7 +1355,7 @@ function applyStaticTranslations() {
   }
 
   setLabelText(weekViewStartInput?.closest('label'), t('startWeekMonday'));
-  setLabelText(weekViewCountSelect?.closest('label'), t('weeksShown'));
+  setText('#week-view-count-label', t('weeksShown'));
   setLabelText(instanceWeekStartInput?.closest('label'), t('weekStartLabel'));
   setLabelText(planDateInput?.closest('label'), t('boardDateLabel'));
   setAttr('#chore-repeat-mode-row', 'aria-label', t('choreRepeatMode'));
@@ -1418,6 +1489,19 @@ function applyStaticTranslations() {
     instanceDeadlineModeEl.options[2].text = t('useCustomDeadline');
   }
 
+  if (statsRangeDaysSelect) {
+    syncSegmentedControl(statsRangeDaysSelect);
+  }
+  if (weekViewCountSelect) {
+    syncSegmentedControl(weekViewCountSelect);
+  }
+  if (settingsLanguageSelectEl) {
+    syncSegmentedControl(settingsLanguageSelectEl);
+  }
+  if (settingsGamificationSelectEl) {
+    syncSegmentedControl(settingsGamificationSelectEl);
+  }
+
   renderStats();
 }
 
@@ -1455,6 +1539,13 @@ function applySettingsToForm(settings) {
   settingsForm.smtp_user.value = settings.smtp_user || '';
   settingsForm.smtp_pass.value = settings.smtp_pass || '';
   settingsForm.smtp_from.value = settings.smtp_from || '';
+
+  if (settingsLanguageSelectEl) {
+    syncSegmentedControl(settingsLanguageSelectEl);
+  }
+  if (settingsGamificationSelectEl) {
+    syncSegmentedControl(settingsGamificationSelectEl);
+  }
 }
 
 function openDialog(dialogEl) {
@@ -2837,6 +2928,7 @@ async function init() {
   syncInstanceDialogUi();
 
   attachDialogCloseHandlers();
+  bindSegmentedControls();
 
   try {
     await loadSettings();

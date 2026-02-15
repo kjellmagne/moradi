@@ -1242,3 +1242,323 @@ select {
     width: 100%;
   }
 }
+
+/* Premium employee theme refinements */
+:root {
+  --employee-bg: #081523;
+  --employee-card: rgba(255, 255, 255, 0.68);
+  --employee-border: rgba(196, 214, 228, 0.78);
+  --employee-text: #102739;
+  --employee-soft: #4f697f;
+  --employee-brand: #1f8dff;
+  --employee-brand-strong: #116ad8;
+  --employee-shadow: 0 22px 38px rgba(7, 24, 38, 0.25);
+}
+
+body {
+  background:
+    radial-gradient(90% 65% at 8% -8%, rgba(46, 127, 205, 0.5) 0%, rgba(46, 127, 205, 0) 54%),
+    radial-gradient(80% 58% at 95% -2%, rgba(33, 80, 136, 0.36) 0%, rgba(33, 80, 136, 0) 58%),
+    linear-gradient(165deg, #071320 0%, #0a1f32 52%, #0c263d 100%);
+}
+
+.employee-header,
+.employee-panel {
+  background: var(--employee-card);
+  border-color: var(--employee-border);
+  box-shadow: var(--employee-shadow);
+  backdrop-filter: blur(12px);
+}
+
+.employee-links a,
+.employee-nav button.secondary,
+.employee-controls button.secondary,
+.employee-actions button.secondary,
+.employee-ipad .icon-nav-btn,
+.employee-mobile .icon-nav-btn {
+  border-color: rgba(176, 198, 217, 0.84);
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.92) 0%, rgba(237, 246, 253, 0.82) 100%);
+  box-shadow:
+    0 8px 16px rgba(7, 25, 40, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.employee-nav button,
+.employee-controls button,
+.employee-actions button,
+.employee-ipad .ipad-user-actions button,
+.employee-mobile .mobile-user-actions button {
+  border: 1px solid rgba(18, 110, 212, 0.68);
+  background: linear-gradient(145deg, #1690ff 0%, #1d84f5 56%, #2a79e3 100%);
+  box-shadow:
+    0 12px 24px rgba(12, 85, 161, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.34),
+    inset 0 -1px 0 rgba(7, 72, 144, 0.42);
+}
+
+.employee-nav button:active,
+.employee-controls button:active,
+.employee-actions button:active,
+.employee-ipad .ipad-user-actions button:active,
+.employee-mobile .mobile-user-actions button:active {
+  transform: translateY(1px);
+}
+
+.employee-day {
+  border-color: rgba(176, 198, 217, 0.84);
+  background: rgba(246, 251, 255, 0.84);
+}
+
+.employee-card,
+.week-owner-item,
+.employee-ipad .ipad-day-column,
+.employee-ipad .ipad-chore-row {
+  border-color: rgba(187, 206, 222, 0.8);
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(10px);
+}
+
+.employee-mobile {
+  background:
+    radial-gradient(120% 70% at 8% -12%, rgba(118, 202, 255, 0.36) 0%, transparent 58%),
+    linear-gradient(180deg, #eaf4ff 0%, #f2f7ff 52%, #f8fbff 100%);
+}
+
+.employee-mobile .employee-header {
+  background: rgba(250, 253, 255, 0.76);
+  border-color: rgba(201, 219, 235, 0.8);
+  box-shadow:
+    0 14px 28px rgba(11, 33, 52, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(16px);
+}
+
+.employee-mobile .mobile-date-nav,
+.employee-mobile .mobile-tabs {
+  background: rgba(236, 244, 251, 0.9);
+  border-color: rgba(197, 214, 229, 0.9);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.86);
+}
+
+.employee-mobile .mobile-tab.current {
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.95) 0%, rgba(244, 250, 255, 0.88) 100%);
+  box-shadow:
+    0 6px 12px rgba(14, 34, 52, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92);
+}
+
+.employee-mobile .mobile-chore-list,
+.employee-mobile .week-owner-list {
+  border-color: rgba(206, 221, 234, 0.86);
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow:
+    0 14px 24px rgba(17, 40, 60, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.86);
+}
+
+.employee-mobile .mobile-chore-row {
+  border-bottom-color: rgba(226, 235, 244, 0.82);
+}
+
+.employee-mobile .mobile-check-toggle {
+  border-color: rgba(167, 188, 206, 0.9);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.88);
+}
+
+.employee-mobile .mobile-check-toggle.checked {
+  background: linear-gradient(160deg, #2dbf77 0%, #1da763 100%);
+  border-color: #2f9f6b;
+  box-shadow: 0 8px 16px rgba(23, 118, 72, 0.24);
+}
+
+.employee-mobile .mobile-user-dialog,
+.employee-ipad .ipad-user-dialog {
+  background: rgba(246, 251, 255, 0.92);
+  border-color: rgba(188, 207, 223, 0.84);
+  backdrop-filter: blur(14px);
+}
+
+.employee-mobile.platform-ios {
+  background:
+    radial-gradient(115% 72% at 16% -10%, rgba(122, 210, 255, 0.44) 0%, transparent 56%),
+    radial-gradient(96% 58% at 88% -6%, rgba(166, 212, 255, 0.32) 0%, transparent 64%),
+    linear-gradient(180deg, #e9f3ff 0%, #f1f7ff 54%, #f8fbff 100%);
+}
+
+.employee-mobile.platform-ios .employee-header {
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.92) 0%, rgba(244, 250, 255, 0.82) 100%);
+  border-color: rgba(196, 216, 233, 0.86);
+}
+
+.employee-mobile.platform-ios .mobile-user-actions button {
+  background: linear-gradient(145deg, #1490ff 0%, #1d84f5 56%, #2a79e3 100%);
+}
+
+/* Shadcn-inspired employee views */
+:root {
+  --employee-bg: #f8fafc;
+  --employee-card: #ffffff;
+  --employee-border: #e2e8f0;
+  --employee-text: #0f172a;
+  --employee-soft: #64748b;
+  --employee-brand: #0f172a;
+  --employee-brand-strong: #0f172a;
+  --employee-shadow: 0 1px 3px rgba(2, 8, 23, 0.08);
+}
+
+body {
+  background: var(--employee-bg);
+  color: var(--employee-text);
+  font-family:
+    'Inter',
+    'Manrope',
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    Segoe UI,
+    sans-serif;
+}
+
+.employee-header,
+.employee-panel {
+  background: var(--employee-card);
+  border: 1px solid var(--employee-border);
+  box-shadow: var(--employee-shadow);
+  border-radius: 14px;
+  backdrop-filter: none;
+}
+
+.employee-header h1,
+.employee-panel h2 {
+  font-family: inherit;
+}
+
+.employee-links a,
+.employee-day,
+select {
+  border-color: #e2e8f0;
+  background: #ffffff;
+  color: #334155;
+}
+
+.employee-nav button,
+.employee-controls button,
+.employee-actions button,
+.employee-ipad .ipad-user-actions button,
+.employee-mobile .mobile-user-actions button {
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: #0f172a;
+  color: #f8fafc;
+  box-shadow: none;
+}
+
+.employee-nav button.secondary,
+.employee-controls button.secondary,
+.employee-actions button.secondary,
+.employee-ipad .ipad-user-actions button.secondary,
+.employee-mobile .mobile-user-actions button.secondary {
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+.employee-card,
+.week-owner-item,
+.employee-ipad .ipad-day-column,
+.employee-ipad .ipad-chore-row {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.employee-card.done,
+.employee-ipad .ipad-chore-row.done,
+.employee-mobile .mobile-chore-row.done {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+}
+
+.employee-card.overdue,
+.employee-ipad .ipad-chore-row.overdue,
+.employee-mobile .mobile-chore-row.overdue {
+  border-color: #fed7aa;
+  background: #fff7ed;
+}
+
+.employee-mobile {
+  background: #f8fafc;
+}
+
+.employee-mobile .employee-header {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  box-shadow: 0 2px 10px rgba(2, 8, 23, 0.08);
+}
+
+.employee-mobile .mobile-date-nav,
+.employee-mobile .mobile-tabs {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  box-shadow: none;
+}
+
+.employee-mobile .icon-nav-btn,
+.employee-ipad .icon-nav-btn {
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #334155;
+  box-shadow: none;
+}
+
+.employee-mobile .mobile-tab.current {
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #0f172a;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+}
+
+.employee-mobile .mobile-chore-list,
+.employee-mobile .week-owner-list {
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: none;
+}
+
+.employee-mobile .mobile-chore-row,
+.employee-mobile .week-owner-item {
+  border-bottom-color: #eef2f7;
+  background: #ffffff;
+}
+
+.employee-mobile .mobile-check-toggle,
+.employee-ipad .ipad-check-toggle {
+  border-color: #cbd5e1;
+  background: #ffffff;
+  box-shadow: none;
+}
+
+.employee-mobile .mobile-check-toggle.checked,
+.employee-ipad .ipad-check-toggle.checked {
+  border-color: #15803d;
+  background: #16a34a;
+  color: #ffffff;
+  box-shadow: none;
+}
+
+.employee-mobile .mobile-user-dialog,
+.employee-ipad .ipad-user-dialog {
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 12px 34px rgba(15, 23, 42, 0.18);
+  backdrop-filter: none;
+}
+
+.employee-mobile.platform-ios,
+.employee-mobile.platform-android {
+  background: #f8fafc;
+}

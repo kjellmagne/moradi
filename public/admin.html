@@ -143,16 +143,28 @@
                   To
                   <input id="stats-end" type="date" />
                 </label>
-                <label style="max-width: 170px">
-                  Range
-                  <select id="stats-range-days">
+                <div class="segmented-field" style="max-width: 420px">
+                  <label id="stats-range-label" for="stats-range-days">Range</label>
+                  <div
+                    class="segmented-control segmented-wide"
+                    data-segment-for="stats-range-days"
+                    role="radiogroup"
+                    aria-labelledby="stats-range-label"
+                  >
+                    <button type="button" data-segment-value="14" aria-pressed="false">14 days</button>
+                    <button type="button" data-segment-value="30" aria-pressed="true" class="is-selected">30 days</button>
+                    <button type="button" data-segment-value="90" aria-pressed="false">90 days</button>
+                    <button type="button" data-segment-value="180" aria-pressed="false">180 days</button>
+                    <button type="button" data-segment-value="custom" aria-pressed="false">Custom</button>
+                  </div>
+                  <select id="stats-range-days" class="native-select-hidden" aria-hidden="true" tabindex="-1">
                     <option value="14">14 days</option>
                     <option value="30" selected>30 days</option>
                     <option value="90">90 days</option>
                     <option value="180">180 days</option>
                     <option value="custom">Custom</option>
                   </select>
-                </label>
+                </div>
               </div>
 
               <div id="stats-highlights" class="stats-highlight-grid"></div>
@@ -195,15 +207,26 @@
                   Start week (Monday)
                   <input id="week-view-start" type="date" />
                 </label>
-                <label style="max-width: 140px">
-                  Weeks shown
-                  <select id="week-view-count">
+                <div class="segmented-field segmented-field-compact" style="max-width: 270px">
+                  <label id="week-view-count-label" for="week-view-count">Weeks shown</label>
+                  <div
+                    class="segmented-control"
+                    data-segment-for="week-view-count"
+                    role="radiogroup"
+                    aria-labelledby="week-view-count-label"
+                  >
+                    <button type="button" data-segment-value="4" aria-pressed="false">4</button>
+                    <button type="button" data-segment-value="6" aria-pressed="false">6</button>
+                    <button type="button" data-segment-value="8" aria-pressed="true" class="is-selected">8</button>
+                    <button type="button" data-segment-value="12" aria-pressed="false">12</button>
+                  </div>
+                  <select id="week-view-count" class="native-select-hidden" aria-hidden="true" tabindex="-1">
                     <option value="4">4</option>
                     <option value="6">6</option>
                     <option value="8" selected>8</option>
                     <option value="12">12</option>
                   </select>
-                </label>
+                </div>
               </div>
 
               <div class="table-wrap">
@@ -660,20 +683,52 @@
         <section class="dialog-section">
           <h4 id="settings-general-title">General</h4>
           <div class="row settings-main-row">
-            <label id="settings-language-label">
-              Language
-              <select name="language">
+            <div class="segmented-field">
+              <label id="settings-language-label" for="settings-language-select">Language</label>
+              <div
+                class="segmented-control"
+                data-segment-for="settings-language-select"
+                role="radiogroup"
+                aria-labelledby="settings-language-label"
+              >
+                <button type="button" data-segment-value="en" aria-pressed="true" class="is-selected">English</button>
+                <button type="button" data-segment-value="no" aria-pressed="false">Norwegian</button>
+              </div>
+              <select
+                id="settings-language-select"
+                name="language"
+                class="native-select-hidden"
+                aria-hidden="true"
+                tabindex="-1"
+              >
                 <option value="en">English</option>
                 <option value="no">Norwegian</option>
               </select>
-            </label>
-            <label id="settings-gamification-label">
-              Gamification mode
-              <select name="gamification_mode">
+            </div>
+            <div class="segmented-field">
+              <label id="settings-gamification-label" for="settings-gamification-select">Gamification mode</label>
+              <div
+                class="segmented-control"
+                data-segment-for="settings-gamification-select"
+                role="radiogroup"
+                aria-labelledby="settings-gamification-label"
+              >
+                <button type="button" data-segment-value="friendly" aria-pressed="true" class="is-selected">
+                  Friendly
+                </button>
+                <button type="button" data-segment-value="hardcore" aria-pressed="false">Hardcore</button>
+              </div>
+              <select
+                id="settings-gamification-select"
+                name="gamification_mode"
+                class="native-select-hidden"
+                aria-hidden="true"
+                tabindex="-1"
+              >
                 <option value="friendly">Friendly</option>
                 <option value="hardcore">Hardcore</option>
               </select>
-            </label>
+            </div>
           </div>
           <div class="row settings-main-row">
             <label class="toggle-row">
