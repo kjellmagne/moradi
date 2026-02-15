@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Moradi</title>
+    <link rel="stylesheet" href="/css/employee.css" />
+  </head>
+  <body class="employee-ipad">
+    <main class="employee-shell">
+      <header class="employee-header">
+        <div class="employee-header-top">
+          <div>
+            <h1 id="ipad-title">Moradi</h1>
+            <p id="ipad-subtitle">Weekly checkoff view for shared office duties</p>
+          </div>
+        </div>
+
+        <div class="ipad-date-nav">
+          <button
+            id="ipad-prev-day"
+            type="button"
+            class="secondary icon-nav-btn"
+            aria-label="Previous week"
+            title="Previous week"
+          >
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M14.7 5.3 8 12l6.7 6.7-1.4 1.4L5.2 12l8.1-8.1 1.4 1.4z" fill="currentColor" />
+            </svg>
+          </button>
+          <div id="ipad-day-label" class="employee-day"></div>
+          <button
+            id="ipad-next-day"
+            type="button"
+            class="secondary icon-nav-btn"
+            aria-label="Next week"
+            title="Next week"
+          >
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="m9.3 5.3 1.4-1.4 8.1 8.1-8.1 8.1-1.4-1.4L16 12 9.3 5.3z" fill="currentColor" />
+            </svg>
+          </button>
+        </div>
+
+        <p id="ipad-status" class="employee-status"></p>
+      </header>
+
+      <section class="employee-panel">
+        <h2 id="ipad-week-heading">Week View (Monday - Friday)</h2>
+        <div class="ipad-week-scroll">
+          <div id="ipad-week-grid" class="ipad-week-grid"></div>
+        </div>
+      </section>
+    </main>
+
+    <dialog id="ipad-user-dialog" class="ipad-user-dialog">
+      <form id="ipad-user-form" class="ipad-user-form" method="dialog">
+        <h3 id="ipad-user-dialog-title">Who are you?</h3>
+        <p id="ipad-user-dialog-text">Choose your name to check off this chore.</p>
+        <label>
+          <span id="ipad-user-label">Employee</span>
+          <select id="ipad-user-select" required></select>
+        </label>
+        <div class="ipad-user-actions">
+          <button id="ipad-user-cancel" type="button" class="secondary" data-close-user-dialog="1">Cancel</button>
+          <button id="ipad-user-confirm" type="submit">Confirm</button>
+        </div>
+      </form>
+    </dialog>
+
+    <script type="module" src="/js/ipad.js"></script>
+  </body>
+</html>

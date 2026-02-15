@@ -1,0 +1,747 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Moradi - Admin</title>
+    <link rel="stylesheet" href="/css/base.css" />
+    <link rel="stylesheet" href="/css/admin.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark">M</div>
+          <div>
+            <h1>Moradi</h1>
+            <p>Gjøremåloppfølging</p>
+          </div>
+        </div>
+
+        <nav class="sidebar-nav" id="admin-nav">
+          <a href="/admin/overview" data-admin-link="overview">Overview</a>
+          <a href="/admin/stats" data-admin-link="stats">Statistics</a>
+          <a href="/admin/team" data-admin-link="team">Team Members</a>
+          <a href="/admin/chores" data-admin-link="chores">Chores</a>
+          <a href="/admin/schedule" data-admin-link="schedule">Schedule</a>
+          <a href="/admin/board" data-admin-link="board">Daily Operations</a>
+        </nav>
+        <div class="sidebar-tools">
+          <button
+            id="open-settings-dialog"
+            type="button"
+            class="sidebar-settings-trigger"
+            aria-label="Open settings"
+            title="Settings"
+          >
+            <span class="sidebar-settings-glyph" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M12 8.8A3.2 3.2 0 1 0 12 15.2A3.2 3.2 0 1 0 12 8.8zM19.4 13.2a7.8 7.8 0 0 0 .1-1.2 7.8 7.8 0 0 0-.1-1.2l2-1.6-1.9-3.3-2.4 1a7.7 7.7 0 0 0-2-1.2l-.4-2.5h-3.8l-.4 2.5a7.7 7.7 0 0 0-2 1.2l-2.4-1-1.9 3.3 2 1.6a7.8 7.8 0 0 0-.1 1.2 7.8 7.8 0 0 0 .1 1.2l-2 1.6 1.9 3.3 2.4-1a7.7 7.7 0 0 0 2 1.2l.4 2.5h3.8l.4-2.5a7.7 7.7 0 0 0 2-1.2l2.4 1 1.9-3.3-2-1.6z"
+                  fill="currentColor"
+                />
+              </svg>
+            </span>
+          </button>
+        </div>
+      </aside>
+
+      <div class="content-shell">
+        <header class="topbar">
+          <div class="topbar-title">
+            <h2 id="admin-page-title">Administration</h2>
+            <p id="admin-page-subtitle">Manage planning and operations settings</p>
+          </div>
+          <div class="topbar-actions topbar-actions-compact">
+            <a href="/employee/ipad" class="device-link" aria-label="Open iPad checkoff view" title="Open iPad view">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <rect x="6" y="2.5" width="12" height="19" rx="2.5" stroke="currentColor" stroke-width="1.6" />
+                <circle cx="12" cy="18.2" r="0.9" fill="currentColor" />
+              </svg>
+            </a>
+            <a
+              href="/employee/mobile"
+              class="device-link"
+              aria-label="Open iPhone checkoff view"
+              title="Open iPhone view"
+            >
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <rect x="7.7" y="1.8" width="8.6" height="20.4" rx="2.2" stroke="currentColor" stroke-width="1.6" />
+                <circle cx="12" cy="18.9" r="0.8" fill="currentColor" />
+              </svg>
+            </a>
+          </div>
+        </header>
+
+        <main class="page-content">
+          <p id="status-message" class="status-message"></p>
+
+          <div class="admin-layout">
+            <section class="page-grid overview-layout" data-admin-section="overview">
+              <div class="overview-top">
+                <section class="stack overview-main">
+                  <article class="panel overview-glance">
+                    <div class="section-title">
+                      <div>
+                        <h2>Today At A Glance</h2>
+                        <p>Execution status for chores due today</p>
+                      </div>
+                    </div>
+                    <div id="overview-summary" class="grid three overview-summary-grid"></div>
+                  </article>
+
+                  <article class="panel">
+                    <div class="section-title">
+                      <div>
+                        <h2>Today&apos;s Chores</h2>
+                        <p>Due now and completion status</p>
+                      </div>
+                    </div>
+                    <div id="overview-plan-cards" class="card-list"></div>
+                  </article>
+
+                  <article class="panel soft">
+                    <div class="section-title">
+                      <div>
+                        <h2>Deadline Alerts</h2>
+                        <p>Recent missed deadlines</p>
+                      </div>
+                    </div>
+                    <div id="overview-alerts" class="alert-list"></div>
+                  </article>
+                </section>
+
+                <aside class="stack overview-side">
+                  <article class="panel">
+                    <div class="section-title">
+                      <div>
+                        <h2>Upcoming Week Owners</h2>
+                        <p>Who owns all chores per week</p>
+                      </div>
+                    </div>
+                    <div id="overview-week-owner-list" class="week-owner-list"></div>
+                  </article>
+                </aside>
+              </div>
+
+            </section>
+
+            <article class="panel stats-panel" data-admin-section="stats">
+              <div class="section-title">
+                <div>
+                  <h2 id="stats-section-title">Performance League</h2>
+                  <p id="stats-section-subtitle">See who completes most, stays on time, and keeps streaks alive</p>
+                </div>
+              </div>
+
+              <div class="plan-controls stats-controls">
+                <label style="max-width: 170px">
+                  From
+                  <input id="stats-start" type="date" />
+                </label>
+                <label style="max-width: 170px">
+                  To
+                  <input id="stats-end" type="date" />
+                </label>
+                <label style="max-width: 170px">
+                  Range
+                  <select id="stats-range-days">
+                    <option value="14">14 days</option>
+                    <option value="30" selected>30 days</option>
+                    <option value="90">90 days</option>
+                    <option value="180">180 days</option>
+                    <option value="custom">Custom</option>
+                  </select>
+                </label>
+              </div>
+
+              <div id="stats-highlights" class="stats-highlight-grid"></div>
+
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Rank</th>
+                      <th>Name</th>
+                      <th>Score</th>
+                      <th>Own Done</th>
+                      <th>Assigned</th>
+                      <th>Own Rate</th>
+                      <th>On-Time</th>
+                      <th>Streak</th>
+                      <th>Badges</th>
+                    </tr>
+                  </thead>
+                  <tbody id="stats-table"></tbody>
+                </table>
+              </div>
+
+              <div class="stats-weekly-block">
+                <h3 id="stats-weekly-title">Weekly Momentum</h3>
+                <div id="stats-weekly" class="stats-weekly-list"></div>
+              </div>
+            </article>
+
+            <article class="panel" data-admin-section="schedule">
+              <div class="section-title">
+                <div>
+                  <h2>Week Responsibility View</h2>
+                  <p>Assign one person to own all chores for that week</p>
+                </div>
+              </div>
+
+              <div class="plan-controls">
+                <label style="max-width: 220px">
+                  Start week (Monday)
+                  <input id="week-view-start" type="date" />
+                </label>
+                <label style="max-width: 140px">
+                  Weeks shown
+                  <select id="week-view-count">
+                    <option value="4">4</option>
+                    <option value="6">6</option>
+                    <option value="8" selected>8</option>
+                    <option value="12">12</option>
+                  </select>
+                </label>
+              </div>
+
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Week #</th>
+                      <th>Week Start</th>
+                      <th>Range</th>
+                      <th>Responsible</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="week-owner-table"></tbody>
+                </table>
+              </div>
+            </article>
+
+            <article class="panel" data-admin-section="schedule">
+              <div class="section-title">
+                <div>
+                  <h2>Weekly Instance Plan</h2>
+                  <p>Week board with per-day instance overrides</p>
+                </div>
+              </div>
+              <p class="notice week-plan-hint">
+                Edit any chore instance to override details for one date only, or disable that single instance.
+              </p>
+              <div class="week-plan-nav">
+                <button
+                  id="instance-week-prev"
+                  type="button"
+                  class="secondary icon-action-btn"
+                  aria-label="Previous week"
+                  title="Previous week"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M14.7 5.3 8 12l6.7 6.7-1.4 1.4L5.2 12l8.1-8.1 1.4 1.4z" fill="currentColor" />
+                  </svg>
+                </button>
+                <div id="instance-week-label" class="week-plan-nav-label"></div>
+                <button
+                  id="instance-week-next"
+                  type="button"
+                  class="secondary icon-action-btn"
+                  aria-label="Next week"
+                  title="Next week"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="m9.3 5.3 1.4-1.4 8.1 8.1-8.1 8.1-1.4-1.4L16 12 9.3 5.3z" fill="currentColor" />
+                  </svg>
+                </button>
+                <label class="week-plan-nav-picker">
+                  Week start
+                  <input id="instance-week-start" type="date" />
+                </label>
+              </div>
+              <div class="admin-week-scroll">
+                <div id="admin-week-plan-grid" class="admin-week-plan-grid"></div>
+              </div>
+            </article>
+
+            <article class="panel" data-admin-section="team">
+              <div class="section-title">
+                <div>
+                  <h2>Team Members</h2>
+                  <p>People available for assignments</p>
+                </div>
+                <div class="actions">
+                  <button id="open-person-dialog" type="button">Add Member</button>
+                </div>
+              </div>
+
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Email</th>
+                      <th>Phone</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="people-table"></tbody>
+                </table>
+              </div>
+            </article>
+
+            <article class="panel" data-admin-section="chores">
+              <div class="section-title">
+                <div>
+                  <h2>Chores</h2>
+                  <p>Deadlines and alert behavior are configured per chore</p>
+                </div>
+                <div class="actions">
+                  <button id="open-chore-dialog" type="button">Add Chore</button>
+                </div>
+              </div>
+
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Schedule</th>
+                      <th>Deadline</th>
+                      <th>Alerts</th>
+                      <th>Active</th>
+                    </tr>
+                  </thead>
+                  <tbody id="chores-table"></tbody>
+                </table>
+              </div>
+            </article>
+
+            <article class="panel board-panel" data-admin-section="board">
+              <div class="section-title">
+                <div>
+                  <h2>Daily Operations Board</h2>
+                  <p>Track execution for the selected date and clear open risks</p>
+                </div>
+              </div>
+              <div class="plan-controls board-date-controls">
+                <button
+                  id="plan-date-prev"
+                  type="button"
+                  class="secondary icon-action-btn"
+                  aria-label="Previous day"
+                  title="Previous day"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M14.7 5.3 8 12l6.7 6.7-1.4 1.4L5.2 12l8.1-8.1 1.4 1.4z" fill="currentColor" />
+                  </svg>
+                </button>
+                <label id="plan-date-label" style="max-width: 190px">
+                  Date
+                  <input id="plan-date" type="date" />
+                </label>
+                <button
+                  id="plan-date-picker"
+                  type="button"
+                  class="secondary icon-action-btn"
+                  aria-label="Open calendar"
+                  title="Open calendar"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path
+                      d="M7 2h2v2h6V2h2v2h3a2 2 0 0 1 2 2v13a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3V6a2 2 0 0 1 2-2h3V2zm13 8H4v9a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-9z"
+                      fill="currentColor"
+                    />
+                  </svg>
+                </button>
+                <button
+                  id="plan-date-next"
+                  type="button"
+                  class="secondary icon-action-btn"
+                  aria-label="Next day"
+                  title="Next day"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="m9.3 5.3 1.4-1.4 8.1 8.1-8.1 8.1-1.4-1.4L16 12 9.3 5.3z" fill="currentColor" />
+                  </svg>
+                </button>
+                <div class="board-date-meta">
+                  <strong id="board-date-readable">Monday, Jan 1</strong>
+                  <span id="board-date-week">Week 1</span>
+                </div>
+              </div>
+
+              <div id="board-summary" class="grid board-summary-grid"></div>
+
+              <div class="board-columns">
+                <section class="board-column">
+                  <header class="board-column-head">
+                    <h3 id="board-attention-title">Needs Attention</h3>
+                    <p id="board-attention-subtitle">Open chores that need action now</p>
+                  </header>
+                  <div id="board-attention-list" class="board-task-list"></div>
+                </section>
+                <section class="board-column">
+                  <header class="board-column-head">
+                    <h3 id="board-completed-title">Completed</h3>
+                    <p id="board-completed-subtitle">Completed chores for selected date</p>
+                  </header>
+                  <div id="board-completed-list" class="board-task-list"></div>
+                </section>
+              </div>
+            </article>
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <dialog id="person-dialog" class="dialog-panel member-dialog-panel">
+      <form id="person-form" class="inline-form dialog-body member-form-layout" method="dialog">
+        <div class="dialog-heading">
+          <h3 id="person-dialog-title">Add Team Member</h3>
+          <p id="person-dialog-subtitle" class="notice">
+            Team members can be assigned chores and week responsibility.
+          </p>
+        </div>
+        <input type="hidden" name="person_id" />
+        <section class="dialog-section">
+          <h4 id="person-details-title">Member Details</h4>
+          <div class="row member-main-row">
+            <label id="person-name-label">
+              Full name
+              <input name="name" required placeholder="e.g. Sarah Jensen" />
+            </label>
+            <label id="person-email-label">
+              Email (optional)
+              <input name="email" type="email" placeholder="name@company.com" />
+            </label>
+          </div>
+          <div class="row member-contact-row">
+            <label id="person-phone-label">
+              Phone (optional)
+              <input name="phone" placeholder="+47 ..." />
+            </label>
+          </div>
+        </section>
+        <div class="actions dialog-actions">
+          <button id="person-submit-label" type="submit">Save</button>
+          <button id="person-cancel-btn" type="button" class="secondary" data-close-dialog="person-dialog">Cancel</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="chore-dialog" class="dialog-panel chore-dialog-panel">
+      <form id="chore-form" class="inline-form dialog-body chore-form-layout" method="dialog">
+        <div class="dialog-heading">
+          <h3 id="chore-dialog-title">Add Chore</h3>
+          <p id="chore-dialog-subtitle" class="notice">
+            Set what should be done, when it repeats, and how deadline alerts should work.
+          </p>
+        </div>
+        <input type="hidden" name="chore_id" />
+
+        <section class="dialog-section">
+          <h4 id="chore-details-title">1. Chore Details</h4>
+          <div class="row chore-main-row">
+            <label id="chore-name-label" class="chore-main-name">
+              Chore name
+              <input name="name" required placeholder="e.g. Empty dishwasher" />
+            </label>
+            <label id="chore-start-date-label">
+              Start date
+              <input name="start_date" type="date" required />
+            </label>
+          </div>
+          <label id="chore-description-label">
+            Description (optional)
+            <textarea name="description" placeholder="Short instructions for the team"></textarea>
+          </label>
+        </section>
+
+        <section class="dialog-section">
+          <h4 id="chore-repeat-title">2. Repeat Schedule</h4>
+          <div id="chore-repeat-mode-row" class="repeat-mode-row" role="radiogroup" aria-label="Repeat mode">
+            <label id="chore-repeat-interval-option" class="repeat-mode-option">
+              <input type="radio" name="repeat_mode" value="interval" checked />
+              Every X days
+            </label>
+            <label id="chore-repeat-weekdays-option" class="repeat-mode-option">
+              <input type="radio" name="repeat_mode" value="weekdays" />
+              Specific weekdays
+            </label>
+          </div>
+
+          <div id="chore-interval-field" class="chore-schedule-block">
+            <label id="chore-repeat-interval-label">
+              Repeat every
+              <div class="inline-value">
+                <input name="interval_days" type="number" min="1" value="1" required />
+                <span id="chore-repeat-day-unit">day(s)</span>
+              </div>
+            </label>
+          </div>
+
+          <div id="chore-weekday-group" class="weekday-select-row chore-schedule-block">
+            <p id="chore-weekday-hint" class="notice">Choose weekdays for this chore.</p>
+            <label id="chore-weekday-mon" class="weekday-option">
+              <input type="checkbox" name="weekday_mask" value="1" />
+              Mon
+            </label>
+            <label id="chore-weekday-tue" class="weekday-option">
+              <input type="checkbox" name="weekday_mask" value="2" />
+              Tue
+            </label>
+            <label id="chore-weekday-wed" class="weekday-option">
+              <input type="checkbox" name="weekday_mask" value="3" />
+              Wed
+            </label>
+            <label id="chore-weekday-thu" class="weekday-option">
+              <input type="checkbox" name="weekday_mask" value="4" />
+              Thu
+            </label>
+            <label id="chore-weekday-fri" class="weekday-option">
+              <input type="checkbox" name="weekday_mask" value="5" />
+              Fri
+            </label>
+            <label id="chore-weekday-sat" class="weekday-option">
+              <input type="checkbox" name="weekday_mask" value="6" />
+              Sat
+            </label>
+            <label id="chore-weekday-sun" class="weekday-option">
+              <input type="checkbox" name="weekday_mask" value="0" />
+              Sun
+            </label>
+          </div>
+        </section>
+
+        <section class="dialog-section">
+          <h4 id="chore-deadline-title">3. Deadline (Optional)</h4>
+          <label class="toggle-row">
+            <span id="chore-has-deadline-label">Use a specific deadline time</span>
+            <input type="checkbox" name="has_deadline" value="1" />
+          </label>
+          <div id="chore-deadline-fields" class="chore-deadline-fields">
+            <label id="chore-deadline-time-label">
+              Deadline time
+              <input name="due_time" type="time" />
+            </label>
+            <label class="toggle-row">
+              <span id="chore-alert-missed-label">Alert if deadline is missed</span>
+              <input type="checkbox" name="alert_enabled" value="1" />
+            </label>
+          </div>
+          <p id="chore-no-fixed-time-hint" class="notice">If this chore has no fixed time, keep deadline turned off.</p>
+        </section>
+
+        <section class="dialog-section chore-status-section">
+          <h4 id="chore-status-title">4. Chore Status</h4>
+          <label class="toggle-row">
+            <span id="chore-active-label">Active chore</span>
+            <input type="checkbox" name="active" value="1" checked />
+          </label>
+          <p id="chore-status-hint" class="notice">Turn off to pause this chore without deleting it.</p>
+        </section>
+
+        <div class="actions dialog-actions">
+          <button id="chore-submit-label" type="submit">Save</button>
+          <button id="chore-cancel-btn" type="button" class="secondary" data-close-dialog="chore-dialog">Cancel</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="week-owner-dialog" class="dialog-panel week-owner-dialog-panel">
+      <form id="week-owner-form" class="inline-form dialog-body week-owner-form-layout" method="dialog">
+        <div class="dialog-heading">
+          <h3 id="week-owner-dialog-title">Assign Week Responsibility</h3>
+          <p id="week-owner-dialog-subtitle" class="notice">Set one person to own all chores for the selected week.</p>
+        </div>
+        <section class="dialog-section">
+          <h4 id="week-owner-section-title">Week And Owner</h4>
+          <div class="row week-owner-main-row">
+            <label id="week-owner-week-label">
+              Week start (Monday)
+              <input id="week-owner-week" name="week_start" type="date" required />
+            </label>
+            <label id="week-owner-person-label">
+              Responsible person
+              <select id="week-owner-person" name="person_id" required></select>
+            </label>
+          </div>
+          <div class="week-owner-preview" aria-live="polite">
+            <strong id="week-owner-preview-number">Week</strong>
+            <p id="week-owner-preview-range" class="notice"></p>
+          </div>
+        </section>
+        <div class="actions dialog-actions">
+          <button id="week-owner-save-btn" type="submit">Save</button>
+          <button id="remove-week-owner" type="button" class="secondary">Clear Week Owner</button>
+          <button id="week-owner-cancel-btn" type="button" class="secondary" data-close-dialog="week-owner-dialog">
+            Cancel
+          </button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="instance-dialog" class="dialog-panel instance-dialog-panel">
+      <form id="instance-form" class="inline-form dialog-body instance-form-layout" method="dialog">
+        <div class="dialog-heading">
+          <h3 id="instance-dialog-title">Edit Chore Instance</h3>
+          <p id="instance-dialog-subtitle" class="notice">Changes apply to one date only.</p>
+        </div>
+        <input type="hidden" name="chore_id" />
+        <input type="hidden" name="work_date" />
+
+        <section class="dialog-section">
+          <h4 id="instance-owner-status-title">Instance Owner And Status</h4>
+          <div class="instance-preview" aria-live="polite">
+            <strong id="instance-preview-name">Chore</strong>
+            <p id="instance-preview-date" class="notice"></p>
+          </div>
+          <label id="instance-person-label">
+            Responsible person (optional)
+            <select id="instance-person" name="person_id"></select>
+          </label>
+          <label class="toggle-row">
+            <span id="instance-disable-label">Disable this single instance</span>
+            <input type="checkbox" name="disabled" value="1" />
+          </label>
+        </section>
+
+        <section id="instance-edit-fields" class="dialog-section">
+          <h4 id="instance-overrides-title">Per-Day Chore Overrides</h4>
+          <div class="row instance-main-row">
+            <label id="instance-name-label">
+              Custom chore name (optional)
+              <input name="name" placeholder="Use only for this day" />
+            </label>
+            <label id="instance-deadline-mode-label">
+              Deadline behavior
+              <select id="instance-deadline-mode" name="deadline_mode">
+                <option value="">Use chore default</option>
+                <option value="0">No deadline this day</option>
+                <option value="1">Use custom deadline</option>
+              </select>
+            </label>
+          </div>
+          <div id="instance-deadline-row" class="row instance-deadline-row">
+            <label id="instance-custom-deadline-label">
+              Custom deadline time
+              <input name="due_time" type="time" />
+            </label>
+            <label class="toggle-row">
+              <span id="instance-alert-missed-label">Alert when custom deadline is missed</span>
+              <input type="checkbox" name="alert_enabled" value="1" />
+            </label>
+          </div>
+          <label id="instance-description-label">
+            Custom description (optional)
+            <textarea name="description" placeholder="Optional one-day note or instruction"></textarea>
+          </label>
+          <p id="instance-default-note" class="notice">Leave fields empty to keep original chore data for this instance.</p>
+        </section>
+
+        <div class="actions dialog-actions">
+          <button id="instance-save-btn" type="submit">Save Instance</button>
+          <button id="remove-instance-override" type="button" class="secondary">Reset Override</button>
+          <button id="instance-cancel-btn" type="button" class="secondary" data-close-dialog="instance-dialog">Cancel</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="settings-dialog" class="dialog-panel settings-dialog-panel">
+      <form id="settings-form" class="inline-form dialog-body settings-form-layout" method="dialog">
+        <div class="dialog-heading">
+          <h3 id="settings-dialog-title">Alert Settings</h3>
+          <p id="settings-dialog-subtitle" class="notice">Configure notification delivery and language.</p>
+        </div>
+
+        <section class="dialog-section">
+          <h4 id="settings-general-title">General</h4>
+          <div class="row settings-main-row">
+            <label id="settings-language-label">
+              Language
+              <select name="language">
+                <option value="en">English</option>
+                <option value="no">Norwegian</option>
+              </select>
+            </label>
+            <label id="settings-gamification-label">
+              Gamification mode
+              <select name="gamification_mode">
+                <option value="friendly">Friendly</option>
+                <option value="hardcore">Hardcore</option>
+              </select>
+            </label>
+          </div>
+          <div class="row settings-main-row">
+            <label class="toggle-row">
+              <span id="settings-deadline-alerts-label">Enable deadline alerts</span>
+              <input type="checkbox" name="deadline_alerts_enabled" value="1" />
+            </label>
+            <label class="toggle-row">
+              <span id="settings-weekly-reminder-label">Send weekly owner reminder (Monday 08:00)</span>
+              <input type="checkbox" name="weekly_owner_alert_enabled" value="1" />
+            </label>
+          </div>
+        </section>
+
+        <section class="dialog-section">
+          <h4 id="settings-webhook-title">Webhook / SMS</h4>
+          <div class="row settings-main-row">
+            <label id="settings-webhook-label">
+              Alert webhook URL
+              <input name="alert_webhook_url" placeholder="https://..." />
+            </label>
+            <label id="settings-sms-label">
+              SMS API gateway URL
+              <input name="sms_gateway_url" placeholder="https://..." />
+            </label>
+          </div>
+        </section>
+
+        <section class="dialog-section">
+          <h4 id="settings-smtp-title">Email (SMTP)</h4>
+          <div class="row settings-main-row">
+            <label id="settings-smtp-host-label">
+              SMTP server
+              <input name="smtp_host" placeholder="smtp.example.com" />
+            </label>
+            <label id="settings-smtp-port-label">
+              Port
+              <input name="smtp_port" type="number" min="1" max="65535" />
+            </label>
+          </div>
+          <div class="row settings-main-row">
+            <label id="settings-smtp-user-label">
+              Account (user)
+              <input name="smtp_user" placeholder="account@example.com" />
+            </label>
+            <label id="settings-smtp-pass-label">
+              Password
+              <input name="smtp_pass" type="password" autocomplete="new-password" />
+            </label>
+          </div>
+          <div class="row settings-main-row">
+            <label id="settings-smtp-from-label">
+              From email
+              <input name="smtp_from" type="email" placeholder="noreply@example.com" />
+            </label>
+            <label class="toggle-row">
+              <span id="settings-smtp-secure-label">Secure (SMTPS/TLS)</span>
+              <input type="checkbox" name="smtp_secure" value="1" />
+            </label>
+          </div>
+        </section>
+
+        <div class="actions dialog-actions">
+          <button id="settings-save-btn" type="submit">Save Settings</button>
+          <button id="settings-cancel-btn" type="button" class="secondary" data-close-dialog="settings-dialog">Cancel</button>
+        </div>
+      </form>
+    </dialog>
+
+    <script type="module" src="/js/admin.js"></script>
+  </body>
+</html>
