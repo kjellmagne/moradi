@@ -35,6 +35,7 @@ import { startScheduler } from './scheduler.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const publicDir = path.resolve(__dirname, '../public');
+const appIndexPath = path.resolve(publicDir, 'app/index.html');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -44,10 +45,8 @@ startScheduler();
 
 app.use(express.json());
 
-function servePage(filename) {
-  return (req, res) => {
-    res.sendFile(path.resolve(publicDir, filename));
-  };
+function serveApp(req, res) {
+  res.sendFile(appIndexPath);
 }
 
 app.get('/', (req, res) => {
@@ -73,10 +72,10 @@ app.get('/admin/:section', (req, res, next) => {
     return next();
   }
 
-  return servePage('admin.html')(req, res);
+  return serveApp(req, res);
 });
-app.get('/employee/ipad', servePage('ipad.html'));
-app.get('/employee/mobile', servePage('mobile.html'));
+app.get('/employee/ipad', serveApp);
+app.get('/employee/mobile', serveApp);
 app.get('/ipad', (req, res) => res.redirect('/employee/ipad'));
 app.get('/mobile', (req, res) => res.redirect('/employee/mobile'));
 

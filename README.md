@@ -1,104 +1,143 @@
-# Office Chores Planner
+# Moradi
 
-A full-stack starter app for office departments that need:
+Moradi is an office chore follow-up app with an admin planning interface and dedicated employee views for iPad and mobile.
 
-- recurring chores (daily, every N days, weekly, etc.)
-- optional specific-weekday chores (Mon/Tue/etc.)
-- full-week ownership (one person owns all chores for a selected week)
-- weekly responsibility plans per chore
-- day-level override assignments
-- deadline-based overdue alerts
-- check-off workflows on admin, iPad, and mobile views
+## What it does
 
-## Views
+- plans recurring chores (every `N` days or selected weekdays)
+- assigns one responsible person per week
+- supports per-day/per-instance overrides (rename, description, deadline, assignee, disable)
+- tracks daily completion with `completed_by` and timestamp
+- sends deadline-missed alerts and weekly owner reminders
+- shows performance statistics and leaderboard data
+- supports Norwegian and English UI language
 
-- `/admin/overview`: administration/planning overview (PC/browser)
-- `/admin/schedule`: week ownership + weekly instance plan
-- `/admin/team`: team member management
-- `/admin/chores`: chore management (including alert settings per chore)
-- `/admin/overrides`: day-level assignment overrides
-- `/admin/board`: daily completion board
-- `/employee/ipad`: employee iPad day view (previous/next day navigation + checkoff)
-- `/employee/mobile`: employee mobile day view (previous/next day navigation + checkoff)
-- `/admin`: redirects to `/admin/overview`
-- `/dashboard`: redirects to `/admin/overview`
-- `/`: redirects to `/admin/overview`
+## Views and routes
 
-UI data refreshes automatically in the background; manual refresh buttons are intentionally minimized.
+Administration (desktop/browser):
 
-## Tech Stack
+- `/admin/overview`
+- `/admin/stats`
+- `/admin/team`
+- `/admin/chores`
+- `/admin/schedule`
+- `/admin/board`
+
+Employee views:
+
+- `/employee/mobile` (day-based checkoff + upcoming weeks tab)
+- `/employee/ipad` (week board, Monday-Friday)
+
+Convenience redirects:
+
+- `/` -> `/admin/overview`
+- `/admin` -> `/admin/overview`
+- `/dashboard` -> `/admin/overview`
+- `/ipad` -> `/employee/ipad`
+- `/mobile` -> `/employee/mobile`
+
+## Tech stack
+
+Backend:
 
 - Node.js + Express
 - SQLite (`better-sqlite3`)
-- `node-cron` for periodic overdue alert scanning
-- Static HTML/CSS/JS frontend
+- `node-cron` for scheduled jobs
+- `nodemailer` for email notifications
+
+Frontend:
+
+- React + Vite (in `web/`)
+- Tailwind CSS
+- Radix primitives (`@radix-ui/react-dialog`, `@radix-ui/react-tabs`)
+- Lucide icons
+
+## Project structure
+
+- `src/server.js`: HTTP server + API routes + SPA route handling
+- `src/db.js`: schema, queries, scheduling logic, stats logic
+- `src/scheduler.js`: cron jobs + notification dispatching
+- `web/`: React application source
+- `public/app/`: built frontend assets served by Express
+- `data/chores.db`: SQLite database
 
 ## Run locally
 
+Install dependencies:
+
 ```bash
 npm install
+```
+
+Run backend (port `3000`):
+
+```bash
 npm run dev
 ```
 
-Then open [http://localhost:3000](http://localhost:3000).
+Run frontend dev server (optional, separate terminal):
 
-## Data model (core)
+```bash
+npm run dev:web
+```
+
+Production-style run (build frontend first, then start server):
+
+```bash
+npm start
+```
+
+## Scheduling logic
+
+For a selected date, chores are included when:
+
+- `weekday_mask` is set and date weekday matches, or
+- no `weekday_mask` and `(date - start_date) % interval_days === 0`
+
+Assignment precedence:
+
+1. instance override person
+2. week owner for that week
+3. unassigned
+
+No fallback assignment beyond that precedence is used.
+
+## Alerts and reminders
+
+Deadline alerts:
+
+- scheduler runs every minute
+- creates alert only if chore is overdue and alerting is enabled
+- deduplicated by `(chore_id, work_date, alert_type)`
+
+Weekly owner reminders:
+
+- scheduler runs Monday at `08:00`
+- sends reminder to assigned week owner for current week
+- deduplicated by week in `weekly_owner_notifications`
+
+Delivery channels (if configured):
+
+- webhook
+- SMS gateway
+- SMTP email
+- fallback to server log when no channel is available
+
+## Core data tables
 
 - `people`
-- `chores` with `interval_days`, `start_date`, optional `due_time`, optional `weekday_mask`
-- `week_owners` per week (Monday start) to assign one person to all chores
-- `day_overrides` for one-off date changes
-- `chore_instance_overrides` for one-day per-instance edits/disable
-- `completions` per chore/date
-- `alerts` for missed deadlines (`deadline_missed`)
-- `app_settings` for language and notification transport settings
-- `weekly_owner_notifications` to dedupe Monday 08:00 reminders
+- `chores`
+- `week_owners`
+- `chore_instance_overrides`
+- `completions`
+- `alerts`
+- `app_settings`
+- `weekly_owner_notifications`
 
-## Alert behavior
+## Useful scripts
 
-A scheduler runs every minute and creates an alert when:
+From repository root:
 
-- a chore has a deadline (`due_time`)
-- current time is past deadline
-- the chore is still not completed
-- global deadline alerts are enabled in app settings
-
-Alerts are deduplicated per `chore + date + alert_type`.
-
-Weekly owner reminder:
-
-- when enabled in settings, a reminder is sent at 08:00 every Monday
-- reminder goes to the person assigned as week owner for that week
-- reminders are deduplicated per week
-
-Assignment precedence in daily plans:
-
-1. `chore_instance_overrides` (person override)
-2. `day_overrides`
-3. `week_owners`
-4. unassigned (no fallback assignment)
-
-Per-chore alerts:
-
-- each chore has an `alert_enabled` setting controlled in chore create/edit
-- missed-deadline alerts are only generated when `alert_enabled = 1`
-
-App settings (via left sidebar cog in admin UI):
-
-- notification language: English or Norwegian
-- global switches for deadline alerts and weekly owner reminders
-- webhook URL
-- SMS gateway URL
-- SMTP host/port/account/password/from for email notifications
-
-Team member deletion behavior:
-
-- if a person has historical records (completions, alerts, or past ownership/override records), delete will disable and hide the person instead of removing history
-- disabled people are removed from active planning selections
-
-Set `ALERT_WEBHOOK_URL` to forward each new alert to an external messaging workflow (Slack, Teams, SMS gateway, etc.). Without a webhook, alerts are logged in server output and shown in the UI.
-
-## Notes
-
-- Database file is `data/chores.db` and is ignored in git.
-- First run seeds sample people, chores, and week owners.
+- `npm run check` - Node syntax checks for backend files
+- `npm run build:web` - build frontend into `public/app`
+- `npm start` - build frontend and run server
