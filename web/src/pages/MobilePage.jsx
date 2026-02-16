@@ -413,32 +413,29 @@ export function MobilePage() {
             </div>
             <div className='progress-bar mt-1'>
               <div
-                className={cn(
-                  'progress-bar-fill',
-                  progressPercent === 100 ? 'progress-bar-fill-good' : progressPercent > 0 ? 'progress-bar-fill-primary' : ''
-                )}
+                className='progress-bar-fill progress-bar-fill-primary'
                 style={{ width: `${progressPercent}%` }}
               />
             </div>
             <div className='mt-2 grid grid-cols-3 gap-2'>
               <div className='stat-pill stat-pill-good'>
-                <p className='text-[10px] font-semibold uppercase tracking-wider text-emerald-600'>{t('completedCount')}</p>
-                <p className='text-xl font-bold text-emerald-700'>{summary.done}</p>
+                <p className='text-[10px] font-semibold uppercase tracking-wider text-theme-600'>{t('completedCount')}</p>
+                <p className='text-xl font-bold text-theme-700'>{summary.done}</p>
               </div>
               <div className='stat-pill stat-pill-default'>
                 <p className='text-[10px] font-semibold uppercase tracking-wider text-slate-500'>{t('pendingCount')}</p>
                 <p className='text-xl font-bold text-slate-700'>{summary.open}</p>
               </div>
               <div className='stat-pill stat-pill-bad'>
-                <p className='text-[10px] font-semibold uppercase tracking-wider text-rose-600'>{t('overdueCount')}</p>
-                <p className='text-xl font-bold text-rose-700'>{summary.overdue}</p>
+                <p className='text-[10px] font-semibold uppercase tracking-wider text-slate-500'>{t('overdueCount')}</p>
+                <p className='text-xl font-bold text-slate-700'>{summary.overdue}</p>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {error ? <p className='mx-4 mt-2 rounded-xl bg-rose-50 px-3 py-2 text-sm font-medium text-rose-600'>{error}</p> : null}
+      {error ? <p className='mx-4 mt-2 rounded-xl border border-slate-200 bg-slate-100 px-3 py-2 text-sm font-medium text-slate-700'>{error}</p> : null}
 
       {/* ── Tab Bar ────────────────────────────────────── */}
       <div className='px-4 pt-2'>
@@ -473,10 +470,10 @@ export function MobilePage() {
             {plan.length ? (
               <div className='space-y-2.5'>
                 {summary.total > 0 && summary.done === summary.total ? (
-                  <div className='animate-pop-in mb-4 flex flex-col items-center rounded-2xl bg-gradient-to-br from-emerald-50 to-teal-50 px-6 py-6 text-center'>
-                    <Sparkles className='mb-2 h-8 w-8 text-emerald-500' />
-                    <p className='text-lg font-bold text-emerald-700'>{t('allDone')}</p>
-                    <p className='text-sm text-emerald-600'>{t('allDoneHint')}</p>
+                  <div className='moradi-glass-strong animate-pop-in mb-4 flex flex-col items-center rounded-2xl border border-slate-200/90 bg-white/90 px-6 py-6 text-center'>
+                    <Sparkles className='mb-2 h-8 w-8 text-theme-500' />
+                    <p className='text-lg font-bold text-slate-900'>{t('allDone')}</p>
+                    <p className='text-sm text-slate-500'>{t('allDoneHint')}</p>
                   </div>
                 ) : null}
                 {plan.map((item, index) => (

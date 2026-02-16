@@ -206,12 +206,6 @@ export function IpadPage() {
     );
   }
 
-  function progressTone() {
-    if (progressPercent === 100) return 'good';
-    if (summary.overdue > 0) return 'bad';
-    return 'primary';
-  }
-
   return (
     <div className='ipad-app-shell mx-auto min-h-dvh w-full max-w-[1600px] px-5 pb-6 pt-4'>
       {/* ── Header Card ─────────────────────────────── */}
@@ -267,30 +261,30 @@ export function IpadPage() {
             <p className='text-2xl font-bold text-theme-700'>{summary.total}</p>
           </div>
           <div className='stat-pill stat-pill-good'>
-            <p className='text-[10px] font-semibold uppercase tracking-wider text-emerald-600'>{t('completedCount')}</p>
-            <p className='text-2xl font-bold text-emerald-700'>{summary.done}</p>
+            <p className='text-[10px] font-semibold uppercase tracking-wider text-theme-600'>{t('completedCount')}</p>
+            <p className='text-2xl font-bold text-theme-700'>{summary.done}</p>
           </div>
           <div className='stat-pill stat-pill-default'>
             <p className='text-[10px] font-semibold uppercase tracking-wider text-slate-500'>{t('pendingCount')}</p>
             <p className='text-2xl font-bold text-slate-700'>{summary.open}</p>
           </div>
           <div className='stat-pill stat-pill-bad'>
-            <p className='text-[10px] font-semibold uppercase tracking-wider text-rose-600'>{t('overdueCount')}</p>
-            <p className='text-2xl font-bold text-rose-700'>{summary.overdue}</p>
+            <p className='text-[10px] font-semibold uppercase tracking-wider text-slate-500'>{t('overdueCount')}</p>
+            <p className='text-2xl font-bold text-slate-700'>{summary.overdue}</p>
           </div>
           <div className='stat-pill stat-pill-default'>
             <p className='text-[10px] font-semibold uppercase tracking-wider text-slate-500'>{t('progress')}</p>
             <p className='text-2xl font-bold text-slate-700'>{progressPercent}%</p>
             <div className='progress-bar mt-1.5'>
               <div
-                className={cn('progress-bar-fill', `progress-bar-fill-${progressTone()}`)}
+                className='progress-bar-fill progress-bar-fill-primary'
                 style={{ width: `${progressPercent}%` }}
               />
             </div>
           </div>
         </div>
 
-        {error ? <p className='mt-3 rounded-xl bg-rose-50 px-3 py-2 text-sm font-medium text-rose-600'>{error}</p> : null}
+        {error ? <p className='mt-3 rounded-xl border border-slate-200 bg-slate-100 px-3 py-2 text-sm font-medium text-slate-700'>{error}</p> : null}
       </div>
 
       {/* ── Week Grid ───────────────────────────────── */}
@@ -343,15 +337,12 @@ export function IpadPage() {
                         <div className='flex items-center justify-between text-[10px]'>
                           <span className='font-medium text-slate-400'>{dayDone}/{dayTotal}</span>
                           {dayPercent === 100 ? (
-                            <Sparkles className='h-3 w-3 text-emerald-500' />
+                            <Sparkles className='h-3 w-3 text-theme-500' />
                           ) : null}
                         </div>
                         <div className='progress-bar mt-0.5'>
                           <div
-                            className={cn(
-                              'progress-bar-fill',
-                              dayPercent === 100 ? 'progress-bar-fill-good' : 'progress-bar-fill-primary'
-                            )}
+                            className='progress-bar-fill progress-bar-fill-primary'
                             style={{ width: `${dayPercent}%` }}
                           />
                         </div>
@@ -415,10 +406,7 @@ export function IpadPage() {
                                     </span>
                                   ) : null}
                                   {item.due_time ? (
-                                    <span className={cn(
-                                      'inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-medium',
-                                      state === 'overdue' ? 'bg-rose-100 text-rose-700' : 'bg-amber-50 text-amber-700'
-                                    )}>
+                                    <span className='inline-flex items-center gap-0.5 rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-600'>
                                       <Clock3 className='h-2.5 w-2.5' />
                                       {item.due_time}
                                     </span>
@@ -426,7 +414,7 @@ export function IpadPage() {
                                 </div>
 
                                 {item.completion?.completed_by_name ? (
-                                  <p className='mt-0.5 text-[10px] text-emerald-600'>
+                                  <p className='mt-0.5 text-[10px] text-slate-400'>
                                     {t('doneBy', { name: item.completion.completed_by_name })}
                                   </p>
                                 ) : null}
