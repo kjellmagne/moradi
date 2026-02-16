@@ -11,7 +11,7 @@ const DialogClose = DialogPrimitive.Close;
 const DialogOverlay = React.forwardRef(({ className, ...props }, ref) => (
   <DialogPrimitive.Overlay
     ref={ref}
-    className={cn('fixed inset-0 z-50 bg-slate-950/50 backdrop-blur-[1px]', className)}
+    className={cn('fixed inset-0 z-50 bg-black/40 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0', className)}
     {...props}
   />
 ));
@@ -23,14 +23,13 @@ const DialogContent = React.forwardRef(({ className, children, ...props }, ref) 
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        'fixed left-[50%] top-[50%] z-50 grid w-full max-w-xl translate-x-[-50%] translate-y-[-50%] gap-4 overflow-hidden rounded-2xl border border-slate-200/80 bg-gradient-to-b from-white to-slate-50/95 p-6 shadow-[0_28px_80px_rgba(15,23,42,0.32),0_6px_20px_rgba(15,23,42,0.16)] backdrop-blur-sm',
+        'fixed left-[50%] top-[50%] z-50 grid w-full max-w-xl translate-x-[-50%] translate-y-[-50%] gap-4 overflow-hidden rounded-3xl border bg-white p-6 moradi-dialog',
         className
       )}
       {...props}
     >
-      <div className='pointer-events-none absolute inset-x-0 top-0 h-12 bg-gradient-to-b from-white/75 to-transparent' />
       {children}
-      <DialogPrimitive.Close className='absolute right-4 top-4 rounded-sm opacity-70 transition-opacity hover:opacity-100'>
+      <DialogPrimitive.Close className='absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-xl bg-slate-100 opacity-70 transition-all hover:bg-slate-200 hover:opacity-100'>
         <X className='h-4 w-4' />
         <span className='sr-only'>Close</span>
       </DialogPrimitive.Close>

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Calendar, CalendarDays, Check, ChevronLeft, ChevronRight, Circle, Clock3, ListChecks, Palette, UserRound } from 'lucide-react';
+import { Calendar, CalendarDays, Check, ChevronLeft, ChevronRight, Circle, Clock3, ListChecks, Palette, Sparkles, UserRound } from 'lucide-react';
 import {
   addDays,
   api,
@@ -11,19 +11,9 @@ import {
 } from '@/lib/api';
 import { localeForLanguage, normalizeLanguage, tr } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle
-} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { BottomSheet } from '@/components/BottomSheet';
+import { useSwipeX, useSwipeCard } from '@/components/useSwipe';
 import { useTheme, THEMES } from '@/lib/theme';
 
 const STORAGE_KEY = 'moradi.mobile.person';
@@ -38,8 +28,9 @@ const TEXT = {
     notSelected: 'Not selected',
     you: 'You',
     chores: 'Chores',
-    weeks: 'Upcoming week owners',
+    weeks: 'Week owners',
     noChores: 'No chores assigned for this day.',
+    noChoresHint: 'Enjoy the free time!',
     noWeeks: 'No week owners configured.',
     previousDay: 'Previous day',
     nextDay: 'Next day',
@@ -60,10 +51,12 @@ const TEXT = {
     weekLabel: 'Week {number}',
     starts: 'Starts {date}',
     doneBy: 'Done by {name}',
-    completedCount: 'Completed',
-    pendingCount: 'Pending',
+    completedCount: 'Done',
+    pendingCount: 'Open',
     overdueCount: 'Late',
-    cycleTheme: 'Change color scheme'
+    swipeHint: 'Swipe right to complete',
+    allDone: 'All done!',
+    allDoneHint: 'Great work today'
   },
   no: {
     title: 'Moradi',
@@ -74,8 +67,9 @@ const TEXT = {
     notSelected: 'Ikke valgt',
     you: 'Deg',
     chores: 'Gjøremål',
-    weeks: 'Kommende ukeansvar',
+    weeks: 'Ukeansvar',
     noChores: 'Ingen gjøremål denne dagen.',
+    noChoresHint: 'Nyt fritiden!',
     noWeeks: 'Ingen ukeansvar satt.',
     previousDay: 'Forrige dag',
     nextDay: 'Neste dag',
@@ -99,7 +93,9 @@ const TEXT = {
     completedCount: 'Fullført',
     pendingCount: 'Åpne',
     overdueCount: 'Forsinket',
-    cycleTheme: 'Bytt fargeskjema'
+    swipeHint: 'Sveip for å fullføre',
+    allDone: 'Alt fullført!',
+    allDoneHint: 'Bra jobba i dag'
   }
 };
 
@@ -109,10 +105,93 @@ function choreState(item) {
   return 'open';
 }
 
-function statusVariant(state) {
-  if (state === 'done') return 'default';
-  if (state === 'overdue') return 'destructive';
-  return 'secondary';
+function initials(name) {
+  if (!name) return '?';
+  return name.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2);
+}
+
+function ChoreCard({ item, index, t, onToggle, disabled }) {
+  const state = choreState(item);
+  const swipe = useSwipeCard({
+    onSwipeRight: state !== 'done' ? onToggle : undefined,
+    enabled: state !== 'done' && !disabled
+  });
+
+  return (
+    <div
+      ref={swipe.ref}
+      onTouchStart={swipe.onTouchStart}
+      onTouchMove={swipe.onTouchMove}
+      onTouchEnd={swipe.onTouchEnd}
+      className={cn(
+        'chore-card animate-stagger-in',
+        `stagger-${Math.min(index + 1, 10)}`,
+        state === 'done' && 'chore-card-done',
+        state === 'overdue' && 'chore-card-overdue',
+        state === 'open' && 'chore-card-open'
+      )}
+    >
+      <div className='flex items-center gap-3'>
+        <button
+          type='button'
+          onClick={onToggle}
+          disabled={disabled}
+          className={cn(
+            'check-circle h-11 w-11 shrink-0 touch-target',
+            state === 'done' && 'check-circle-done',
+            state === 'overdue' && 'check-circle-overdue',
+            state === 'open' && 'check-circle-open'
+          )}
+        >
+          {state === 'done' ? (
+            <Check className='h-5 w-5 animate-check-bounce' />
+          ) : (
+            <Circle className='h-5 w-5' />
+          )}
+        </button>
+
+        <div className='min-w-0 flex-1'>
+          <p className={cn(
+            'text-[15px] font-semibold leading-tight',
+            state === 'done' ? 'text-slate-400 line-through' : 'text-slate-900'
+          )}>
+            {item.chore_name}
+          </p>
+
+          <div className='mt-1.5 flex flex-wrap items-center gap-1.5'>
+            {item.responsible_person ? (
+              <span className='inline-flex items-center gap-1 rounded-full bg-theme-100 px-2 py-0.5 text-[11px] font-medium text-theme-700'>
+                <UserRound className='h-3 w-3' />
+                {item.responsible_person.name}
+              </span>
+            ) : (
+              <span className='inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500'>
+                {t('unassigned')}
+              </span>
+            )}
+            {item.due_time ? (
+              <span className='inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600'>
+                <Clock3 className='h-3 w-3' />
+                {item.due_time}
+              </span>
+            ) : null}
+          </div>
+
+          {item.completion?.completed_by_name ? (
+            <p className='mt-1 text-xs text-slate-400'>
+              {t('doneBy', { name: item.completion.completed_by_name })}
+            </p>
+          ) : null}
+        </div>
+
+        {state !== 'done' && (
+          <div className='shrink-0'>
+            <ChevronRight className='h-4 w-4 text-slate-300' />
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
 
 export function MobilePage() {
@@ -124,21 +203,30 @@ export function MobilePage() {
   const [plan, setPlan] = useState([]);
   const [weekOwners, setWeekOwners] = useState([]);
   const [error, setError] = useState('');
-  const [personDialogOpen, setPersonDialogOpen] = useState(false);
+  const [personSheetOpen, setPersonSheetOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('chores');
+  const [slideDirection, setSlideDirection] = useState('right');
   const dateInputRef = useRef(null);
 
   const locale = localeForLanguage(language);
   const t = (key, vars = {}) => tr(TEXT, language, key, vars);
 
-  const selectedPerson = useMemo(() => people.find((person) => String(person.id) === String(personId)) || null, [people, personId]);
+  const selectedPerson = useMemo(
+    () => people.find((person) => String(person.id) === String(personId)) || null,
+    [people, personId]
+  );
+
   const summary = useMemo(() => {
-    const result = { done: 0, open: 0, overdue: 0 };
+    const result = { done: 0, open: 0, overdue: 0, total: 0 };
     for (const item of plan) {
+      result.total += 1;
       const state = choreState(item);
       result[state] += 1;
     }
     return result;
   }, [plan]);
+
+  const progressPercent = summary.total > 0 ? Math.round((summary.done / summary.total) * 100) : 0;
 
   async function loadAll() {
     const [settings, peopleRows] = await Promise.all([api.getSettings(), api.getPeople()]);
@@ -166,12 +254,10 @@ export function MobilePage() {
 
   useEffect(() => {
     loadAll().catch((err) => setError(err.message));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    if (!people.length) return;
-    if (!personId) return;
+    if (!people.length || !personId) return;
     window.localStorage.setItem(STORAGE_KEY, String(personId));
   }, [personId, people.length]);
 
@@ -184,7 +270,7 @@ export function MobilePage() {
     const checker = personId || item.responsible_person?.id;
     if (!checker) {
       setError(t('setPersonFirst'));
-      setPersonDialogOpen(true);
+      setPersonSheetOpen(true);
       return;
     }
 
@@ -197,6 +283,16 @@ export function MobilePage() {
     const rows = await api.getPlan(date);
     setPlan(rows);
   }
+
+  function navigateDay(delta) {
+    setSlideDirection(delta > 0 ? 'right' : 'left');
+    setDate((value) => addDays(value, delta));
+  }
+
+  const dateSwipe = useSwipeX({
+    onSwipeLeft: () => navigateDay(1),
+    onSwipeRight: () => navigateDay(-1)
+  });
 
   function openDatePicker() {
     if (!dateInputRef.current) return;
@@ -219,62 +315,65 @@ export function MobilePage() {
     );
   }
 
+  const isToday = date === todayKey();
+
   return (
-    <div className='mobile-app-shell mx-auto min-h-dvh w-full max-w-xl px-3 pb-5 pt-4'>
-      <Card className='moradi-glass-panel sticky top-3 z-20 rounded-3xl border-white/75'>
-        <CardHeader className='space-y-4 p-4'>
-          <div className='flex items-start justify-between gap-3'>
+    <div className='mobile-app-shell mx-auto w-full max-w-xl pb-6 pt-2'>
+      {/* ── Header ────────────────────────────────────── */}
+      <div className='sticky top-0 z-20 px-4 pt-2 pb-3'>
+        <div className='moradi-glass-panel rounded-3xl p-4'>
+          {/* Top row: brand + person + theme */}
+          <div className='flex items-center justify-between'>
             <div>
-              <p className='text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-500'>{t('title')}</p>
-              <CardTitle className='mt-1 text-xl text-slate-900'>{t('subtitle')}</CardTitle>
-              <p className='mt-1 text-sm text-slate-600'>
-                {t('you')}: <strong className='text-slate-900'>{selectedPerson?.name || t('notSelected')}</strong>
-              </p>
+              <p className='text-[10px] font-bold uppercase tracking-[0.25em] text-theme-500'>{t('title')}</p>
+              <h1 className='mt-0.5 text-lg font-bold text-slate-900'>{t('subtitle')}</h1>
             </div>
             <div className='flex items-center gap-2'>
-              <Button
-                variant='outline'
-                size='icon'
-                onClick={() => {
-                  const index = THEMES.indexOf(theme);
-                  setTheme(THEMES[(index + 1) % THEMES.length]);
-                }}
-                className='moradi-soft-button h-9 w-9 rounded-full border-slate-200/90 bg-white/85'
-                title={t('cycleTheme')}
+              <button
+                type='button'
+                onClick={() => { const idx = THEMES.indexOf(theme); setTheme(THEMES[(idx + 1) % THEMES.length]); }}
+                className='flex h-8 w-8 items-center justify-center rounded-full bg-theme-100 transition-all active:scale-95'
+                title='Color scheme'
               >
-                <Palette className='h-4 w-4' />
-              </Button>
-              <Button
-                variant='outline'
-                size='sm'
-                onClick={() => setPersonDialogOpen(true)}
-                className='moradi-soft-button h-9 rounded-full border-slate-200/90 bg-white/85 px-3'
+                <Palette className='h-4 w-4 text-theme-600' />
+              </button>
+              <button
+                type='button'
+                onClick={() => setPersonSheetOpen(true)}
+                className='flex items-center gap-2 rounded-full bg-theme-100 py-1.5 pl-1.5 pr-3 transition-all duration-200 active:scale-95'
               >
-                <UserRound className='h-4 w-4' />
-                {t('choosePerson')}
-              </Button>
+                <div className='person-avatar h-7 w-7 text-xs'>
+                  {initials(selectedPerson?.name)}
+                </div>
+                <span className='text-sm font-semibold text-theme-700'>
+                  {selectedPerson?.name?.split(' ')[0] || t('choosePerson')}
+                </span>
+              </button>
             </div>
           </div>
 
-          <div className='moradi-segmented grid grid-cols-[44px_1fr_44px] items-center gap-2 rounded-2xl p-2'>
-            <Button
-              variant='outline'
-              size='icon'
-              onClick={() => setDate((value) => addDays(value, -1))}
+          {/* Date navigation */}
+          <div className='mt-3 flex items-center gap-2'>
+            <button
+              type='button'
+              onClick={() => navigateDay(-1)}
               title={t('previousDay')}
-              className='moradi-soft-button h-10 w-10 rounded-xl border-slate-200/90 bg-white/95'
+              className='moradi-soft-button flex h-10 w-10 shrink-0 items-center justify-center rounded-xl'
             >
-              <ChevronLeft className='h-4 w-4' />
-            </Button>
+              <ChevronLeft className='h-4 w-4 text-slate-600' />
+            </button>
 
-            <div className='relative min-w-0'>
+            <div className='relative min-w-0 flex-1'>
               <button
                 type='button'
                 onClick={openDatePicker}
-                className='w-full rounded-xl border border-slate-200/90 bg-white/90 px-3 py-2 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]'
+                className='w-full rounded-xl bg-white/80 px-3 py-2 text-left shadow-sm transition-all duration-200 active:scale-[0.98]'
+                style={{ border: '1px solid var(--theme-card-border)' }}
               >
-                <p className='text-[11px] font-medium uppercase tracking-wide text-slate-500'>{t('date')}</p>
-                <p className='truncate text-sm font-semibold text-slate-900'>{formatDateLabel(date)}</p>
+                <p className='text-[10px] font-semibold uppercase tracking-wider text-theme-400'>
+                  {isToday ? '● ' : ''}{t('date')}
+                </p>
+                <p className='truncate text-sm font-bold text-slate-900'>{formatDateLabel(date)}</p>
               </button>
               <Input
                 ref={dateInputRef}
@@ -285,208 +384,204 @@ export function MobilePage() {
                 aria-label={t('pickDate')}
                 tabIndex={-1}
               />
-              <Button
+              <button
                 type='button'
                 variant='ghost'
-                size='icon'
                 title={t('openCalendar')}
                 onClick={openDatePicker}
-                className='absolute right-1 top-1/2 h-8 w-8 -translate-y-1/2 rounded-lg text-slate-500 hover:bg-slate-100/85'
+                className='absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-1 text-theme-400 transition-colors hover:bg-theme-50'
               >
                 <Calendar className='h-4 w-4' />
-              </Button>
+              </button>
             </div>
 
-            <Button
-              variant='outline'
-              size='icon'
-              onClick={() => setDate((value) => addDays(value, 1))}
+            <button
+              type='button'
+              onClick={() => navigateDay(1)}
               title={t('nextDay')}
-              className='moradi-soft-button h-10 w-10 rounded-xl border-slate-200/90 bg-white/95'
+              className='moradi-soft-button flex h-10 w-10 shrink-0 items-center justify-center rounded-xl'
             >
-              <ChevronRight className='h-4 w-4' />
-            </Button>
+              <ChevronRight className='h-4 w-4 text-slate-600' />
+            </button>
           </div>
 
-          <div className='grid grid-cols-3 gap-2'>
-            <div className='moradi-glass-strong rounded-2xl px-3 py-2 text-center'>
-              <p className='text-[11px] font-medium uppercase tracking-wide text-primary/80'>{t('completedCount')}</p>
-              <p className='text-lg font-semibold text-primary'>{summary.done}</p>
+          {/* Progress bar + stats */}
+          <div className='mt-3'>
+            <div className='flex items-center justify-between text-xs'>
+              <span className='font-semibold text-slate-700'>{progressPercent}%</span>
+              <span className='text-slate-400'>{summary.done}/{summary.total}</span>
             </div>
-            <div className='moradi-glass-strong rounded-2xl px-3 py-2 text-center'>
-              <p className='text-[11px] font-medium uppercase tracking-wide text-slate-500'>{t('pendingCount')}</p>
-              <p className='text-lg font-semibold text-slate-900'>{summary.open}</p>
-            </div>
-            <div className='moradi-glass-strong rounded-2xl px-3 py-2 text-center'>
-              <p className='text-[11px] font-medium uppercase tracking-wide text-slate-500'>{t('overdueCount')}</p>
-              <p className='text-lg font-semibold text-slate-900'>{summary.overdue}</p>
-            </div>
-          </div>
-        </CardHeader>
-      </Card>
-
-      {error ? <p className='mt-3 px-1 text-sm text-destructive'>{error}</p> : null}
-
-      <Tabs defaultValue='chores' className='mt-4'>
-        <TabsList className='moradi-segmented grid h-11 w-full grid-cols-2 rounded-2xl p-1'>
-          <TabsTrigger
-            value='chores'
-            className='rounded-xl data-[state=active]:bg-white/95 data-[state=active]:shadow-sm data-[state=active]:text-slate-900'
-          >
-            <ListChecks className='mr-1 h-4 w-4' />
-            {t('chores')}
-          </TabsTrigger>
-          <TabsTrigger
-            value='weeks'
-            className='rounded-xl data-[state=active]:bg-white/95 data-[state=active]:shadow-sm data-[state=active]:text-slate-900'
-          >
-            <CalendarDays className='mr-1 h-4 w-4' />
-            {t('weeks')}
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value='chores' className='space-y-2.5'>
-          {plan.length ? (
-            plan.map((item) => (
-              <Card
-                key={`${item.chore_id}-${item.work_date}`}
+            <div className='progress-bar mt-1'>
+              <div
                 className={cn(
-                  'moradi-glass-strong rounded-2xl',
-                  item.completion
-                    ? 'employee-card-done'
-                    : item.overdue
-                      ? 'employee-card-overdue'
-                      : 'border-slate-200/90 bg-white/88'
+                  'progress-bar-fill',
+                  progressPercent === 100 ? 'progress-bar-fill-good' : progressPercent > 0 ? 'progress-bar-fill-primary' : ''
                 )}
-              >
-                <CardContent className='p-3'>
-                  <div className='flex items-center gap-3'>
-                    <Button
-                      variant='outline'
-                      size='icon'
-                      className={cn(
-                        'moradi-soft-button h-10 w-10 rounded-xl border-slate-200/90',
-                        item.completion
-                          ? 'employee-check-done'
-                          : item.overdue
-                            ? 'employee-check-overdue'
-                            : 'bg-white/90 text-slate-600'
-                      )}
-                      onClick={() => toggle(item).catch((err) => setError(err.message))}
-                    >
-                      {item.completion ? <Check className='h-5 w-5' /> : <Circle className='h-5 w-5' />}
-                    </Button>
+                style={{ width: `${progressPercent}%` }}
+              />
+            </div>
+            <div className='mt-2 grid grid-cols-3 gap-2'>
+              <div className='stat-pill stat-pill-good'>
+                <p className='text-[10px] font-semibold uppercase tracking-wider text-emerald-600'>{t('completedCount')}</p>
+                <p className='text-xl font-bold text-emerald-700'>{summary.done}</p>
+              </div>
+              <div className='stat-pill stat-pill-default'>
+                <p className='text-[10px] font-semibold uppercase tracking-wider text-slate-500'>{t('pendingCount')}</p>
+                <p className='text-xl font-bold text-slate-700'>{summary.open}</p>
+              </div>
+              <div className='stat-pill stat-pill-bad'>
+                <p className='text-[10px] font-semibold uppercase tracking-wider text-rose-600'>{t('overdueCount')}</p>
+                <p className='text-xl font-bold text-rose-700'>{summary.overdue}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
-                    <div className='min-w-0 flex-1'>
-                      <div className='flex items-start justify-between gap-2'>
-                        <p className={cn('font-semibold text-slate-900', item.completion && 'text-slate-500 line-through')}>
-                          {item.chore_name}
-                        </p>
-                        <Badge variant={statusVariant(choreState(item))} className='rounded-full px-2 py-0.5 text-[11px]'>
-                          {choreState(item) === 'done' ? t('done') : choreState(item) === 'overdue' ? t('overdue') : t('open')}
-                        </Badge>
-                      </div>
+      {error ? <p className='mx-4 mt-2 rounded-xl bg-rose-50 px-3 py-2 text-sm font-medium text-rose-600'>{error}</p> : null}
 
-                      <div className='mt-1 flex flex-wrap items-center gap-1.5'>
-                        <Badge variant='secondary' className='rounded-full bg-slate-100/90 text-[11px] text-slate-700'>
-                          {t('responsible')}: {item.responsible_person?.name || t('unassigned')}
-                        </Badge>
-                        {item.due_time ? (
-                          <Badge variant='secondary' className='rounded-full bg-slate-100/90 text-[11px] text-slate-700'>
-                            <Clock3 className='mr-1 h-3.5 w-3.5' />
-                            {t('deadline')}: {item.due_time}
-                          </Badge>
-                        ) : null}
-                      </div>
+      {/* ── Tab Bar ────────────────────────────────────── */}
+      <div className='px-4 pt-2'>
+        <div className='tab-bar grid grid-cols-2'>
+          <button
+            type='button'
+            onClick={() => setActiveTab('chores')}
+            className={cn('tab-bar-item', activeTab === 'chores' ? 'tab-bar-item-active' : 'tab-bar-item-inactive')}
+          >
+            <ListChecks className='h-4 w-4' />
+            {t('chores')}
+          </button>
+          <button
+            type='button'
+            onClick={() => setActiveTab('weeks')}
+            className={cn('tab-bar-item', activeTab === 'weeks' ? 'tab-bar-item-active' : 'tab-bar-item-inactive')}
+          >
+            <CalendarDays className='h-4 w-4' />
+            {t('weeks')}
+          </button>
+        </div>
+      </div>
 
-                      {item.completion?.completed_by_name ? (
-                        <p className='mt-1 text-xs text-slate-500'>
-                          {t('doneBy', { name: item.completion.completed_by_name })}
-                        </p>
-                      ) : null}
-                    </div>
+      {/* ── Content ───────────────────────────────────── */}
+      <div
+        className='mt-3 px-4'
+        onTouchStart={dateSwipe.onTouchStart}
+        onTouchEnd={dateSwipe.onTouchEnd}
+      >
+        {activeTab === 'chores' ? (
+          <div key={date} className={slideDirection === 'right' ? 'animate-slide-right' : 'animate-slide-left'}>
+            {plan.length ? (
+              <div className='space-y-2.5'>
+                {summary.total > 0 && summary.done === summary.total ? (
+                  <div className='animate-pop-in mb-4 flex flex-col items-center rounded-2xl bg-gradient-to-br from-emerald-50 to-teal-50 px-6 py-6 text-center'>
+                    <Sparkles className='mb-2 h-8 w-8 text-emerald-500' />
+                    <p className='text-lg font-bold text-emerald-700'>{t('allDone')}</p>
+                    <p className='text-sm text-emerald-600'>{t('allDoneHint')}</p>
                   </div>
-                </CardContent>
-              </Card>
-            ))
-          ) : (
-            <Card className='border-slate-200 bg-white/95'>
-              <CardContent className='py-6 text-sm text-muted-foreground'>{t('noChores')}</CardContent>
-            </Card>
-          )}
-        </TabsContent>
-
-        <TabsContent value='weeks' className='space-y-2'>
-          {weekOwners.length ? (
-            weekOwners.map((row) => (
-              <Card key={row.week_start} className='moradi-glass-strong rounded-2xl border-slate-200/90 bg-white/90'>
-                <CardContent className='p-3'>
-                  <div className='flex items-center gap-3'>
-                    <div className='moradi-soft-button flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border-slate-200 bg-white/90 text-sm font-semibold text-slate-700'>
-                      {weekNumberFromDateKey(row.week_start)}
-                    </div>
-                    <div className='min-w-0 flex-1'>
-                      <p className='truncate text-sm font-semibold text-slate-900'>{formatWeekRange(row.week_start, locale)}</p>
-                      <p className='text-xs text-slate-500'>
-                        {t('weekLabel', { number: weekNumberFromDateKey(row.week_start) })} ·{' '}
-                        {t('starts', { date: formatShortDate(row.week_start) })}
-                      </p>
-                    </div>
-                    <Badge variant={row.person_name ? 'default' : 'secondary'} className='rounded-full px-2.5 py-1'>
-                      {row.person_name || t('unassigned')}
-                    </Badge>
-                  </div>
-                </CardContent>
-              </Card>
-            ))
-          ) : (
-            <Card className='moradi-glass-strong rounded-2xl border-slate-200/90 bg-white/90'>
-              <CardContent className='py-6 text-center text-sm text-muted-foreground'>{t('noWeeks')}</CardContent>
-            </Card>
-          )}
-        </TabsContent>
-      </Tabs>
-
-      <Dialog open={personDialogOpen} onOpenChange={setPersonDialogOpen}>
-        <DialogContent className='max-w-md'>
-          <DialogHeader>
-            <DialogTitle>{t('choosePerson')}</DialogTitle>
-            <DialogDescription>{t('selectFromList')}</DialogDescription>
-          </DialogHeader>
-          <div className='max-h-[46vh] space-y-2 overflow-auto pr-1'>
-            {people.length ? (
-              people.map((person) => {
-                const active = String(person.id) === String(personId);
-                return (
-                  <button
-                    key={person.id}
-                    type='button'
-                    onClick={() => setPersonId(String(person.id))}
-                    className={cn(
-                      'w-full rounded-xl border px-3 py-2.5 text-left text-sm transition',
-                      active
-                        ? 'border-primary/60 bg-primary/10 text-primary shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]'
-                        : 'moradi-soft-button border-slate-200/90 bg-white/90 text-slate-700'
-                    )}
-                  >
-                    <span className='font-medium'>{person.name}</span>
-                  </button>
-                );
-              })
+                ) : null}
+                {plan.map((item, index) => (
+                  <ChoreCard
+                    key={`${item.chore_id}-${item.work_date}`}
+                    item={item}
+                    index={index}
+                    t={t}
+                    onToggle={() => toggle(item).catch((err) => setError(err.message))}
+                    disabled={false}
+                  />
+                ))}
+              </div>
             ) : (
-              <p className='text-sm text-muted-foreground'>{t('notSelected')}</p>
+              <div className='empty-state animate-fade-in-up py-16'>
+                <CalendarDays className='mb-3 h-12 w-12 text-slate-300' />
+                <p className='text-base font-semibold text-slate-500'>{t('noChores')}</p>
+                <p className='mt-1 text-sm text-slate-400'>{t('noChoresHint')}</p>
+              </div>
             )}
           </div>
-          <DialogFooter>
-            <Button variant='outline' onClick={() => setPersonDialogOpen(false)}>
-              {t('cancel')}
-            </Button>
-            <Button onClick={() => setPersonDialogOpen(false)} disabled={!personId}>
-              {t('save')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        ) : (
+          <div className='animate-fade-in space-y-2.5'>
+            {weekOwners.length ? (
+              weekOwners.map((row, index) => (
+                <div
+                  key={row.week_start}
+                  className={cn('week-card animate-stagger-in', `stagger-${Math.min(index + 1, 10)}`)}
+                >
+                  <div className='week-number-badge'>
+                    {weekNumberFromDateKey(row.week_start)}
+                  </div>
+                  <div className='min-w-0 flex-1'>
+                    <p className='text-sm font-bold text-slate-900'>{formatWeekRange(row.week_start, locale)}</p>
+                    <p className='text-xs text-slate-500'>
+                      {t('weekLabel', { number: weekNumberFromDateKey(row.week_start) })} · {t('starts', { date: formatShortDate(row.week_start) })}
+                    </p>
+                  </div>
+                  <span className={cn(
+                    'rounded-full px-3 py-1 text-xs font-semibold',
+                    row.person_name
+                      ? 'bg-theme-100 text-theme-700'
+                      : 'bg-slate-100 text-slate-500'
+                  )}>
+                    {row.person_name || t('unassigned')}
+                  </span>
+                </div>
+              ))
+            ) : (
+              <div className='empty-state animate-fade-in-up py-16'>
+                <CalendarDays className='mb-3 h-12 w-12 text-slate-300' />
+                <p className='text-base font-semibold text-slate-500'>{t('noWeeks')}</p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* ── Person Bottom Sheet ────────────────────────── */}
+      <BottomSheet
+        open={personSheetOpen}
+        onClose={() => setPersonSheetOpen(false)}
+        title={t('choosePerson')}
+        description={t('selectFromList')}
+      >
+        <div className='space-y-2 pt-2'>
+          {people.length ? (
+            people.map((person) => {
+              const active = String(person.id) === String(personId);
+              return (
+                <button
+                  key={person.id}
+                  type='button'
+                  onClick={() => {
+                    setPersonId(String(person.id));
+                    setPersonSheetOpen(false);
+                  }}
+                  className={cn(
+                    'person-select-btn',
+                    active ? 'person-select-btn-active' : 'person-select-btn-inactive'
+                  )}
+                >
+                  <div className={cn(
+                    'person-avatar h-10 w-10 shrink-0',
+                    active && 'ring-2 ring-theme-400 ring-offset-2'
+                  )}>
+                    {initials(person.name)}
+                  </div>
+                  <div className='min-w-0 flex-1'>
+                    <p className='text-sm font-semibold text-slate-900'>{person.name}</p>
+                    {person.email ? <p className='truncate text-xs text-slate-500'>{person.email}</p> : null}
+                  </div>
+                  {active ? (
+                    <div className='flex h-6 w-6 items-center justify-center rounded-full bg-theme-500 text-white'>
+                      <Check className='h-3.5 w-3.5' />
+                    </div>
+                  ) : null}
+                </button>
+              );
+            })
+          ) : (
+            <p className='py-4 text-center text-sm text-slate-500'>{t('notSelected')}</p>
+          )}
+        </div>
+      </BottomSheet>
     </div>
   );
 }

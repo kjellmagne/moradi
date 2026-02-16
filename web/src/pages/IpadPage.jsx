@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Check, ChevronLeft, ChevronRight, Circle, Clock3, Palette, UserRound } from 'lucide-react';
+import { Check, ChevronLeft, ChevronRight, Circle, Clock3, Palette, Sparkles, UserRound } from 'lucide-react';
 import {
   addDays,
   api,
@@ -12,17 +12,8 @@ import {
 } from '@/lib/api';
 import { localeForLanguage, normalizeLanguage, tr } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle
-} from '@/components/ui/dialog';
+import { BottomSheet } from '@/components/BottomSheet';
+import { useSwipeX } from '@/components/useSwipe';
 import { useTheme, THEMES } from '@/lib/theme';
 
 const STORAGE_KEY = 'moradi.ipad.person';
@@ -35,13 +26,14 @@ const TEXT = {
     previousWeek: 'Previous week',
     nextWeek: 'Next week',
     weekLabel: 'Week {number}',
-    chooseWho: 'Choose who you are',
-    chooseWhoHint: 'Select employee to register completion.',
+    chooseWho: 'Who completed this?',
+    chooseWhoHint: 'Select the person who completed this chore.',
     employee: 'Employee',
     selectFromList: 'Select from team members',
     confirm: 'Confirm',
     cancel: 'Cancel',
     noDue: 'No chores due',
+    noDueHint: 'Nothing scheduled',
     unassigned: 'Unassigned',
     done: 'Done',
     open: 'Open',
@@ -49,11 +41,12 @@ const TEXT = {
     deadline: 'Deadline',
     responsible: 'Responsible',
     doneBy: 'Done by {name}',
-    completedCount: 'Completed',
-    pendingCount: 'Pending',
+    completedCount: 'Done',
+    pendingCount: 'Open',
     overdueCount: 'Late',
     totalCount: 'Total',
-    cycleTheme: 'Change color scheme'
+    allDone: 'All done!',
+    progress: 'Progress'
   },
   no: {
     title: 'Moradi',
@@ -62,13 +55,14 @@ const TEXT = {
     previousWeek: 'Forrige uke',
     nextWeek: 'Neste uke',
     weekLabel: 'Uke {number}',
-    chooseWho: 'Velg hvem du er',
-    chooseWhoHint: 'Velg ansatt for å registrere fullføring.',
+    chooseWho: 'Hvem fullførte dette?',
+    chooseWhoHint: 'Velg personen som fullførte gjøremålet.',
     employee: 'Ansatt',
     selectFromList: 'Velg fra ansatte',
     confirm: 'Bekreft',
     cancel: 'Avbryt',
     noDue: 'Ingen gjøremål',
+    noDueHint: 'Ingenting planlagt',
     unassigned: 'Ikke tildelt',
     done: 'Fullført',
     open: 'Åpen',
@@ -80,7 +74,8 @@ const TEXT = {
     pendingCount: 'Åpne',
     overdueCount: 'Forsinket',
     totalCount: 'Totalt',
-    cycleTheme: 'Bytt fargeskjema'
+    allDone: 'Alt fullført!',
+    progress: 'Fremgang'
   }
 };
 
@@ -90,11 +85,9 @@ function choreState(item) {
   return 'open';
 }
 
-function statusLabel(item, t) {
-  const state = choreState(item);
-  if (state === 'done') return t('done');
-  if (state === 'overdue') return t('overdue');
-  return t('open');
+function initials(name) {
+  if (!name) return '?';
+  return name.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2);
 }
 
 export function IpadPage() {
@@ -104,14 +97,16 @@ export function IpadPage() {
   const [weekStart, setWeekStart] = useState(startOfWeek(todayKey()));
   const [weekPlans, setWeekPlans] = useState({});
   const [error, setError] = useState('');
-  const [userDialogOpen, setUserDialogOpen] = useState(false);
+  const [personSheetOpen, setPersonSheetOpen] = useState(false);
   const [selectedPersonId, setSelectedPersonId] = useState('');
   const [pendingAction, setPendingAction] = useState(null);
+  const [slideDirection, setSlideDirection] = useState('right');
 
   const locale = localeForLanguage(language);
   const t = (key, vars = {}) => tr(TEXT, language, key, vars);
 
   const days = useMemo(() => mondayToFridayDates(weekStart), [weekStart]);
+
   const summary = useMemo(() => {
     const result = { done: 0, open: 0, overdue: 0, total: 0 };
     for (const dateKey of days) {
@@ -125,6 +120,8 @@ export function IpadPage() {
     }
     return result;
   }, [days, weekPlans]);
+
+  const progressPercent = summary.total > 0 ? Math.round((summary.done / summary.total) * 100) : 0;
 
   async function loadSettingsAndPeople() {
     const [settings, peopleRows] = await Promise.all([api.getSettings(), api.getPeople()]);
@@ -153,7 +150,6 @@ export function IpadPage() {
 
   useEffect(() => {
     Promise.all([loadSettingsAndPeople(), loadWeekPlan(weekStart)]).catch((err) => setError(err.message));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -174,12 +170,12 @@ export function IpadPage() {
     }
 
     setPendingAction({ chore_id: item.chore_id, work_date: dateKey });
-    setUserDialogOpen(true);
+    setPersonSheetOpen(true);
   }
 
   async function confirmCompletion() {
     if (!pendingAction || !selectedPersonId) {
-      setUserDialogOpen(false);
+      setPersonSheetOpen(false);
       return;
     }
 
@@ -189,10 +185,20 @@ export function IpadPage() {
       completed_by: Number(selectedPersonId)
     });
 
-    setUserDialogOpen(false);
+    setPersonSheetOpen(false);
     setPendingAction(null);
     await loadWeekPlan(weekStart);
   }
+
+  function navigateWeek(delta) {
+    setSlideDirection(delta > 0 ? 'right' : 'left');
+    setWeekStart((value) => addDays(value, delta * 7));
+  }
+
+  const weekSwipe = useSwipeX({
+    onSwipeLeft: () => navigateWeek(1),
+    onSwipeRight: () => navigateWeek(-1)
+  });
 
   function formatDay(dateKey) {
     return new Intl.DateTimeFormat(locale, { weekday: 'short', day: 'numeric', month: 'short' }).format(
@@ -200,213 +206,289 @@ export function IpadPage() {
     );
   }
 
+  function progressTone() {
+    if (progressPercent === 100) return 'good';
+    if (summary.overdue > 0) return 'bad';
+    return 'primary';
+  }
+
   return (
-    <div className='ipad-app-shell mx-auto min-h-dvh w-full max-w-[1600px] px-4 pb-6 pt-4'>
-      <Card className='moradi-glass-panel rounded-3xl border-white/75'>
-        <CardHeader className='space-y-4 p-5'>
-          <div className='flex flex-wrap items-start justify-between gap-4'>
-            <div>
-              <p className='text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-500'>{t('title')}</p>
-              <CardTitle className='mt-1 text-2xl text-slate-900'>{t('subtitle')}</CardTitle>
-              <p className='mt-1 text-sm text-slate-600'>{t('weekView')}</p>
-            </div>
-            <div className='moradi-segmented flex items-center gap-2 rounded-2xl p-2'>
-              <Button
-                variant='outline'
-                size='icon'
-                onClick={() => {
-                  const index = THEMES.indexOf(theme);
-                  setTheme(THEMES[(index + 1) % THEMES.length]);
-                }}
-                title={t('cycleTheme')}
-                className='moradi-soft-button h-10 w-10 rounded-xl border-slate-200/90 bg-white/95'
-              >
-                <Palette className='h-4 w-4' />
-              </Button>
-              <Button
-                variant='outline'
-                size='icon'
-                onClick={() => setWeekStart((value) => addDays(value, -7))}
-                title={t('previousWeek')}
-                className='moradi-soft-button h-10 w-10 rounded-xl border-slate-200/90 bg-white/95'
-              >
-                <ChevronLeft className='h-4 w-4' />
-              </Button>
-              <div className='moradi-glass-strong min-w-[240px] rounded-xl border-slate-200/90 bg-white/90 px-4 py-2 text-center'>
-                <p className='text-base font-semibold text-slate-900'>{t('weekLabel', { number: weekNumberFromDateKey(weekStart) })}</p>
-                <p className='text-xs font-normal text-slate-500'>{formatWeekRange(weekStart, locale)}</p>
-              </div>
-              <Button
-                variant='outline'
-                size='icon'
-                onClick={() => setWeekStart((value) => addDays(value, 7))}
-                title={t('nextWeek')}
-                className='moradi-soft-button h-10 w-10 rounded-xl border-slate-200/90 bg-white/95'
-              >
-                <ChevronRight className='h-4 w-4' />
-              </Button>
-            </div>
+    <div className='ipad-app-shell mx-auto min-h-dvh w-full max-w-[1600px] px-5 pb-6 pt-4'>
+      {/* ── Header Card ─────────────────────────────── */}
+      <div className='moradi-glass-panel animate-fade-in rounded-3xl p-5'>
+        <div className='flex flex-wrap items-start justify-between gap-4'>
+          <div>
+            <p className='text-[10px] font-bold uppercase tracking-[0.25em] text-theme-500'>{t('title')}</p>
+            <h1 className='mt-1 text-2xl font-bold text-slate-900'>{t('subtitle')}</h1>
+            <p className='mt-0.5 text-sm text-slate-500'>{t('weekView')}</p>
           </div>
 
-          <div className='grid grid-cols-4 gap-2'>
-            <div className='moradi-glass-strong rounded-2xl px-3 py-2 text-center'>
-              <p className='text-[11px] font-medium uppercase tracking-wide text-slate-500'>{t('totalCount')}</p>
-              <p className='text-lg font-semibold text-slate-900'>{summary.total}</p>
+          {/* Week navigator + theme */}
+          <div className='flex items-center gap-2'>
+            <button
+              type='button'
+              onClick={() => { const idx = THEMES.indexOf(theme); setTheme(THEMES[(idx + 1) % THEMES.length]); }}
+              className='moradi-soft-button flex h-10 w-10 items-center justify-center rounded-xl'
+              title='Color scheme'
+            >
+              <Palette className='h-4 w-4 text-theme-600' />
+            </button>
+            <button
+              type='button'
+              onClick={() => navigateWeek(-1)}
+              title={t('previousWeek')}
+              className='moradi-soft-button flex h-10 w-10 items-center justify-center rounded-xl'
+            >
+              <ChevronLeft className='h-4 w-4 text-slate-600' />
+            </button>
+            <div className='min-w-[260px] rounded-xl bg-white/80 px-4 py-2.5 text-center shadow-sm'
+              style={{ border: '1px solid var(--theme-card-border)' }}
+            >
+              <p className='text-base font-bold text-slate-900'>
+                {t('weekLabel', { number: weekNumberFromDateKey(weekStart) })}
+              </p>
+              <p className='text-xs text-slate-500'>{formatWeekRange(weekStart, locale)}</p>
             </div>
-            <div className='moradi-glass-strong rounded-2xl px-3 py-2 text-center'>
-              <p className='text-[11px] font-medium uppercase tracking-wide text-primary/80'>{t('completedCount')}</p>
-              <p className='text-lg font-semibold text-primary'>{summary.done}</p>
-            </div>
-            <div className='moradi-glass-strong rounded-2xl px-3 py-2 text-center'>
-              <p className='text-[11px] font-medium uppercase tracking-wide text-slate-500'>{t('pendingCount')}</p>
-              <p className='text-lg font-semibold text-slate-900'>{summary.open}</p>
-            </div>
-            <div className='moradi-glass-strong rounded-2xl px-3 py-2 text-center'>
-              <p className='text-[11px] font-medium uppercase tracking-wide text-slate-500'>{t('overdueCount')}</p>
-              <p className='text-lg font-semibold text-slate-900'>{summary.overdue}</p>
+            <button
+              type='button'
+              onClick={() => navigateWeek(1)}
+              title={t('nextWeek')}
+              className='moradi-soft-button flex h-10 w-10 items-center justify-center rounded-xl'
+            >
+              <ChevronRight className='h-4 w-4 text-slate-600' />
+            </button>
+          </div>
+        </div>
+
+        {/* Stats row */}
+        <div className='mt-4 grid grid-cols-5 gap-3'>
+          <div className='stat-pill stat-pill-primary'>
+            <p className='text-[10px] font-semibold uppercase tracking-wider text-theme-600'>{t('totalCount')}</p>
+            <p className='text-2xl font-bold text-theme-700'>{summary.total}</p>
+          </div>
+          <div className='stat-pill stat-pill-good'>
+            <p className='text-[10px] font-semibold uppercase tracking-wider text-emerald-600'>{t('completedCount')}</p>
+            <p className='text-2xl font-bold text-emerald-700'>{summary.done}</p>
+          </div>
+          <div className='stat-pill stat-pill-default'>
+            <p className='text-[10px] font-semibold uppercase tracking-wider text-slate-500'>{t('pendingCount')}</p>
+            <p className='text-2xl font-bold text-slate-700'>{summary.open}</p>
+          </div>
+          <div className='stat-pill stat-pill-bad'>
+            <p className='text-[10px] font-semibold uppercase tracking-wider text-rose-600'>{t('overdueCount')}</p>
+            <p className='text-2xl font-bold text-rose-700'>{summary.overdue}</p>
+          </div>
+          <div className='stat-pill stat-pill-default'>
+            <p className='text-[10px] font-semibold uppercase tracking-wider text-slate-500'>{t('progress')}</p>
+            <p className='text-2xl font-bold text-slate-700'>{progressPercent}%</p>
+            <div className='progress-bar mt-1.5'>
+              <div
+                className={cn('progress-bar-fill', `progress-bar-fill-${progressTone()}`)}
+                style={{ width: `${progressPercent}%` }}
+              />
             </div>
           </div>
+        </div>
 
-          {error ? <p className='px-1 text-sm text-destructive'>{error}</p> : null}
-        </CardHeader>
-      </Card>
+        {error ? <p className='mt-3 rounded-xl bg-rose-50 px-3 py-2 text-sm font-medium text-rose-600'>{error}</p> : null}
+      </div>
 
-      <Card className='moradi-glass-panel mt-4 rounded-3xl border-white/75'>
-        <CardContent className='p-4'>
-          <div className='scroll-area-soft overflow-x-auto pb-2'>
-            <div className='grid min-w-[1260px] grid-cols-5 gap-3'>
-              {days.map((dateKey) => {
-                const items = weekPlans[dateKey] || [];
-                const isToday = dateKey === todayKey();
-                return (
-                  <Card
-                    key={dateKey}
-                    className={cn(
-                      'moradi-glass-strong h-full rounded-2xl border-slate-200/90 bg-white/90',
-                      isToday && 'employee-today-column'
-                    )}
-                  >
-                    <CardHeader className='border-b border-slate-200/80 px-3 pb-2 pt-3'>
-                      <CardTitle className='text-sm text-slate-900'>{formatDay(dateKey)}</CardTitle>
-                    </CardHeader>
-                    <CardContent className='space-y-2 px-3 pb-3 pt-3'>
-                      {items.length ? (
-                        items.map((item) => (
+      {/* ── Week Grid ───────────────────────────────── */}
+      <div
+        className='mt-4'
+        onTouchStart={weekSwipe.onTouchStart}
+        onTouchEnd={weekSwipe.onTouchEnd}
+      >
+        <div className='scroll-area-soft overflow-x-auto pb-2'>
+          <div
+            key={weekStart}
+            className={cn(
+              'grid min-w-[1260px] grid-cols-5 gap-3',
+              slideDirection === 'right' ? 'animate-slide-right' : 'animate-slide-left'
+            )}
+          >
+            {days.map((dateKey, dayIndex) => {
+              const items = weekPlans[dateKey] || [];
+              const isToday = dateKey === todayKey();
+              const dayActive = items.filter((i) => !i.instance_disabled);
+              const dayDone = dayActive.filter((i) => i.completion).length;
+              const dayTotal = dayActive.length;
+              const dayPercent = dayTotal > 0 ? Math.round((dayDone / dayTotal) * 100) : 0;
+
+              return (
+                <div
+                  key={dateKey}
+                  className={cn(
+                    'animate-stagger-in',
+                    `stagger-${dayIndex + 1}`,
+                    'day-column',
+                    isToday && 'day-column-today'
+                  )}
+                >
+                  {/* Day header */}
+                  <div className='border-b border-slate-200/60 px-3 pb-2 pt-3'>
+                    <div className='flex items-center justify-between'>
+                      <p className={cn(
+                        'text-sm font-bold',
+                        isToday ? 'text-theme-700' : 'text-slate-900'
+                      )}>
+                        {formatDay(dateKey)}
+                      </p>
+                      {isToday ? (
+                        <span className='h-2 w-2 rounded-full bg-theme-500' />
+                      ) : null}
+                    </div>
+                    {dayTotal > 0 ? (
+                      <div className='mt-1.5'>
+                        <div className='flex items-center justify-between text-[10px]'>
+                          <span className='font-medium text-slate-400'>{dayDone}/{dayTotal}</span>
+                          {dayPercent === 100 ? (
+                            <Sparkles className='h-3 w-3 text-emerald-500' />
+                          ) : null}
+                        </div>
+                        <div className='progress-bar mt-0.5'>
+                          <div
+                            className={cn(
+                              'progress-bar-fill',
+                              dayPercent === 100 ? 'progress-bar-fill-good' : 'progress-bar-fill-primary'
+                            )}
+                            style={{ width: `${dayPercent}%` }}
+                          />
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+
+                  {/* Day items */}
+                  <div className='space-y-2 px-2.5 pb-3 pt-2.5'>
+                    {items.length ? (
+                      items.map((item, itemIndex) => {
+                        const state = choreState(item);
+                        return (
                           <div
                             key={`${dateKey}-${item.chore_id}`}
                             className={cn(
-                              'rounded-xl border p-2',
+                              'animate-stagger-in rounded-xl border p-2.5 transition-all duration-200',
+                              `stagger-${Math.min(itemIndex + 1, 10)}`,
                               item.instance_disabled
-                                ? 'border-slate-200/80 bg-slate-100/85 opacity-65'
-                                : item.completion
-                                  ? 'employee-card-done'
-                                  : item.overdue
-                                    ? 'employee-card-overdue'
-                                    : 'border-slate-200/80 bg-white/88'
+                                ? 'chore-card-disabled'
+                                : state === 'done'
+                                  ? 'chore-card-done'
+                                  : state === 'overdue'
+                                    ? 'chore-card-overdue'
+                                    : 'chore-card-open'
                             )}
                           >
                             <div className='flex items-start gap-2'>
-                              <Button
-                                variant='outline'
-                                size='icon'
+                              <button
+                                type='button'
                                 className={cn(
-                                  'moradi-soft-button h-9 w-9 shrink-0 rounded-xl border-slate-200/90',
-                                  item.completion
-                                    ? 'employee-check-done'
-                                    : item.overdue
-                                      ? 'employee-check-overdue'
-                                      : 'bg-white/95 text-slate-600'
+                                  'check-circle mt-0.5 h-8 w-8 shrink-0',
+                                  state === 'done' && 'check-circle-done',
+                                  state === 'overdue' && 'check-circle-overdue',
+                                  state === 'open' && 'check-circle-open',
+                                  item.instance_disabled && 'opacity-40'
                                 )}
                                 onClick={() => toggleItem(item, dateKey).catch((err) => setError(err.message))}
                                 disabled={Boolean(item.instance_disabled)}
                               >
-                                {item.completion ? <Check className='h-4 w-4' /> : <Circle className='h-4 w-4' />}
-                              </Button>
+                                {state === 'done' ? (
+                                  <Check className='h-4 w-4 animate-check-bounce' />
+                                ) : (
+                                  <Circle className='h-4 w-4' />
+                                )}
+                              </button>
+
                               <div className='min-w-0 flex-1'>
-                                <div className='flex items-start justify-between gap-2'>
-                                  <p className={cn('text-sm font-semibold leading-tight text-slate-900', item.completion && 'text-slate-500 line-through')}>
-                                    {item.chore_name}
-                                  </p>
-                                  {!item.instance_disabled ? (
-                                    <Badge
-                                      variant={choreState(item) === 'done' ? 'default' : choreState(item) === 'overdue' ? 'destructive' : 'secondary'}
-                                      className='rounded-full px-2 py-0.5 text-[10px]'
-                                    >
-                                      {statusLabel(item, t)}
-                                    </Badge>
+                                <p className={cn(
+                                  'text-sm font-semibold leading-tight',
+                                  state === 'done' ? 'text-slate-400 line-through' : 'text-slate-900'
+                                )}>
+                                  {item.chore_name}
+                                </p>
+
+                                <div className='mt-1 flex flex-wrap gap-1'>
+                                  {item.responsible_person ? (
+                                    <span className='inline-flex items-center gap-0.5 rounded-full bg-theme-100 px-1.5 py-0.5 text-[10px] font-medium text-theme-700'>
+                                      <UserRound className='h-2.5 w-2.5' />
+                                      {item.responsible_person.name}
+                                    </span>
                                   ) : null}
-                                </div>
-                                <div className='mt-1 flex flex-wrap gap-1.5'>
-                                  <Badge variant='secondary' className='rounded-full bg-slate-100/90 text-[10px] text-slate-700'>
-                                    {t('responsible')}: {item.responsible_person?.name || t('unassigned')}
-                                  </Badge>
                                   {item.due_time ? (
-                                    <Badge variant='secondary' className='rounded-full bg-slate-100/90 text-[10px] text-slate-700'>
-                                      <Clock3 className='mr-1 h-3.5 w-3.5' />
-                                      {t('deadline')}: {item.due_time}
-                                    </Badge>
+                                    <span className={cn(
+                                      'inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-medium',
+                                      state === 'overdue' ? 'bg-rose-100 text-rose-700' : 'bg-amber-50 text-amber-700'
+                                    )}>
+                                      <Clock3 className='h-2.5 w-2.5' />
+                                      {item.due_time}
+                                    </span>
                                   ) : null}
                                 </div>
+
                                 {item.completion?.completed_by_name ? (
-                                  <p className='mt-1 text-xs text-slate-500'>
+                                  <p className='mt-0.5 text-[10px] text-emerald-600'>
                                     {t('doneBy', { name: item.completion.completed_by_name })}
                                   </p>
                                 ) : null}
                               </div>
                             </div>
                           </div>
-                        ))
-                      ) : (
-                        <div className='rounded-xl border border-dashed border-slate-200 bg-white/70 p-3 text-center'>
-                          <p className='text-sm text-muted-foreground'>{t('noDue')}</p>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Dialog open={userDialogOpen} onOpenChange={setUserDialogOpen}>
-        <DialogContent className='max-w-md'>
-          <DialogHeader>
-            <DialogTitle>{t('chooseWho')}</DialogTitle>
-            <DialogDescription>{t('selectFromList')}</DialogDescription>
-          </DialogHeader>
-          <div className='max-h-[46vh] space-y-2 overflow-auto pr-1'>
-            {people.map((person) => {
-              const active = String(person.id) === String(selectedPersonId);
-              return (
-                <button
-                  key={person.id}
-                  type='button'
-                  onClick={() => setSelectedPersonId(String(person.id))}
-                  className={cn(
-                    'w-full rounded-xl border px-3 py-2.5 text-left text-sm transition',
-                    active
-                      ? 'border-primary/60 bg-primary/10 text-primary shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]'
-                      : 'moradi-soft-button border-slate-200/90 bg-white/90 text-slate-700'
-                  )}
-                >
-                  <span className='font-medium'>{person.name}</span>
-                </button>
+                        );
+                      })
+                    ) : (
+                      <div className='flex flex-col items-center rounded-xl border border-dashed border-slate-200 px-3 py-6 text-center'>
+                        <p className='text-xs font-medium text-slate-400'>{t('noDue')}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
               );
             })}
           </div>
-          <DialogFooter>
-            <Button variant='outline' onClick={() => setUserDialogOpen(false)}>
-              {t('cancel')}
-            </Button>
-            <Button onClick={() => confirmCompletion().catch((err) => setError(err.message))} disabled={!selectedPersonId}>
-              <UserRound className='h-4 w-4' />
-              {t('confirm')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        </div>
+      </div>
+
+      {/* ── Person Bottom Sheet ────────────────────── */}
+      <BottomSheet
+        open={personSheetOpen}
+        onClose={() => { setPersonSheetOpen(false); setPendingAction(null); }}
+        title={t('chooseWho')}
+        description={t('chooseWhoHint')}
+      >
+        <div className='space-y-2 pt-2'>
+          {people.map((person) => {
+            const active = String(person.id) === String(selectedPersonId);
+            return (
+              <button
+                key={person.id}
+                type='button'
+                onClick={() => {
+                  setSelectedPersonId(String(person.id));
+                  confirmCompletion().catch((err) => setError(err.message));
+                }}
+                className={cn(
+                  'person-select-btn',
+                  active ? 'person-select-btn-active' : 'person-select-btn-inactive'
+                )}
+              >
+                <div className={cn(
+                  'person-avatar h-10 w-10 shrink-0',
+                  active && 'ring-2 ring-theme-400 ring-offset-2'
+                )}>
+                  {initials(person.name)}
+                </div>
+                <div className='min-w-0 flex-1'>
+                  <p className='text-sm font-semibold text-slate-900'>{person.name}</p>
+                  {person.email ? <p className='truncate text-xs text-slate-500'>{person.email}</p> : null}
+                </div>
+                {active ? (
+                  <span className='text-xs font-medium text-theme-500'>{t('confirm')}</span>
+                ) : null}
+              </button>
+            );
+          })}
+        </div>
+      </BottomSheet>
     </div>
   );
 }

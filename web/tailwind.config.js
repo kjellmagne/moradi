@@ -40,6 +40,16 @@ export default {
         card: {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))'
+        },
+        theme: {
+          50: 'hsl(var(--theme-50) / <alpha-value>)',
+          100: 'hsl(var(--theme-100) / <alpha-value>)',
+          200: 'hsl(var(--theme-200) / <alpha-value>)',
+          300: 'hsl(var(--theme-300) / <alpha-value>)',
+          400: 'hsl(var(--theme-400) / <alpha-value>)',
+          500: 'hsl(var(--theme-500) / <alpha-value>)',
+          600: 'hsl(var(--theme-600) / <alpha-value>)',
+          700: 'hsl(var(--theme-700) / <alpha-value>)'
         }
       },
       borderRadius: {

@@ -12,30 +12,31 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
+import { Field } from './AdminShared';
 import { useTheme, THEMES, THEME_LABELS, THEME_COLORS } from '@/lib/theme';
 import { cn } from '@/lib/utils';
-import { Field } from './AdminShared';
 
 function ColorSchemePicker({ t }) {
   const { theme, setTheme } = useTheme();
-
   return (
     <div className='grid gap-1.5'>
-      <Label>{t('colorScheme')}</Label>
-      <div className='flex flex-wrap gap-2'>
+      <Label className='text-sm font-semibold text-slate-700'>{t('colorScheme')}</Label>
+      <div className='flex gap-2'>
         {THEMES.map((id) => (
           <button
             key={id}
             type='button'
             onClick={() => setTheme(id)}
             className={cn(
-              'flex flex-col items-center gap-1 rounded-xl border-2 px-2.5 py-2 transition-all',
-              theme === id ? 'border-primary bg-accent' : 'border-slate-200 bg-white hover:border-slate-300'
+              'flex flex-col items-center gap-1 rounded-xl border-2 p-2.5 transition-all',
+              theme === id
+                ? 'border-primary bg-accent'
+                : 'border-slate-200 bg-white hover:border-slate-300'
             )}
           >
             <div className='flex gap-0.5'>
-              <div className='h-5 w-5 rounded-full' style={{ background: THEME_COLORS[id][0] }} />
-              <div className='h-5 w-5 rounded-full' style={{ background: THEME_COLORS[id][1] }} />
+              <div className='h-6 w-6 rounded-full' style={{ background: THEME_COLORS[id][0] }} />
+              <div className='h-6 w-6 rounded-full' style={{ background: THEME_COLORS[id][1] }} />
             </div>
             <span className='text-xs font-medium text-slate-700'>{THEME_LABELS[id]}</span>
           </button>
@@ -90,29 +91,32 @@ export function AdminDialogs({
             <DialogDescription>{t('sectionTeamSubtitle')}</DialogDescription>
           </DialogHeader>
           <form className='grid gap-3' onSubmit={submitPerson}>
-            <div className='grid gap-1'>
-              <Label>{t('placeHolderName')}</Label>
+            <div className='grid gap-1.5'>
+              <Label className='text-sm font-semibold text-slate-700'>{t('placeHolderName')}</Label>
               <Input
                 required
                 value={personForm.name}
                 onChange={(e) => setPersonForm((prev) => ({ ...prev, name: e.target.value }))}
                 placeholder={t('placeHolderName')}
+                className='rounded-xl'
               />
             </div>
-            <div className='grid gap-1'>
-              <Label>{t('placeHolderEmail')}</Label>
+            <div className='grid gap-1.5'>
+              <Label className='text-sm font-semibold text-slate-700'>{t('placeHolderEmail')}</Label>
               <Input
                 value={personForm.email}
                 onChange={(e) => setPersonForm((prev) => ({ ...prev, email: e.target.value }))}
                 placeholder={t('placeHolderEmail')}
+                className='rounded-xl'
               />
             </div>
-            <div className='grid gap-1'>
-              <Label>{t('placeHolderPhone')}</Label>
+            <div className='grid gap-1.5'>
+              <Label className='text-sm font-semibold text-slate-700'>{t('placeHolderPhone')}</Label>
               <Input
                 value={personForm.phone}
                 onChange={(e) => setPersonForm((prev) => ({ ...prev, phone: e.target.value }))}
                 placeholder={t('placeHolderPhone')}
+                className='rounded-xl'
               />
             </div>
             <DialogFooter>
@@ -133,48 +137,51 @@ export function AdminDialogs({
           </DialogHeader>
           <form className='grid gap-4' onSubmit={submitChore}>
             <div className='grid gap-3 md:grid-cols-2'>
-              <div className='grid gap-1 md:col-span-2'>
-                <Label>{t('placeHolderName')}</Label>
+              <div className='grid gap-1.5 md:col-span-2'>
+                <Label className='text-sm font-semibold text-slate-700'>{t('placeHolderName')}</Label>
                 <Input
                   required
                   value={choreForm.name}
                   onChange={(e) => setChoreForm((prev) => ({ ...prev, name: e.target.value }))}
+                  className='rounded-xl'
                 />
               </div>
-              <div className='grid gap-1'>
-                <Label>{t('startDate')}</Label>
+              <div className='grid gap-1.5'>
+                <Label className='text-sm font-semibold text-slate-700'>{t('startDate')}</Label>
                 <Input
                   type='date'
                   required
                   value={choreForm.start_date}
                   onChange={(e) => setChoreForm((prev) => ({ ...prev, start_date: e.target.value }))}
+                  className='rounded-xl'
                 />
               </div>
-              <div className='grid gap-1'>
-                <Label>{t('scheduleMode')}</Label>
+              <div className='grid gap-1.5'>
+                <Label className='text-sm font-semibold text-slate-700'>{t('scheduleMode')}</Label>
                 <Tabs
                   value={choreForm.repeat_mode}
                   onValueChange={(value) => setChoreForm((prev) => ({ ...prev, repeat_mode: value }))}
                 >
-                  <TabsList className='grid grid-cols-2'>
-                    <TabsTrigger value='interval'>{t('intervalMode')}</TabsTrigger>
-                    <TabsTrigger value='weekdays'>{t('weekdaysMode')}</TabsTrigger>
+                  <TabsList className='grid grid-cols-2 rounded-xl'>
+                    <TabsTrigger value='interval' className='rounded-lg'>{t('intervalMode')}</TabsTrigger>
+                    <TabsTrigger value='weekdays' className='rounded-lg'>{t('weekdaysMode')}</TabsTrigger>
                   </TabsList>
                 </Tabs>
               </div>
               {choreForm.repeat_mode === 'interval' ? (
-                <div className='grid gap-1'>
-                  <Label>{t('intervalDays')}</Label>
+                <div className='grid gap-1.5'>
+                  <Label className='text-sm font-semibold text-slate-700'>{t('intervalDays')}</Label>
                   <Input
                     type='number'
                     min='1'
                     value={choreForm.interval_days}
                     onChange={(e) => setChoreForm((prev) => ({ ...prev, interval_days: Number(e.target.value || 1) }))}
+                    className='rounded-xl'
                   />
                 </div>
               ) : (
-                <div className='grid gap-1 md:col-span-2'>
-                  <Label>{t('weekdaysLabel')}</Label>
+                <div className='grid gap-1.5 md:col-span-2'>
+                  <Label className='text-sm font-semibold text-slate-700'>{t('weekdaysLabel')}</Label>
                   <div className='flex flex-wrap gap-2'>
                     {[1, 2, 3, 4, 5, 6, 0].map((day) => {
                       const selected = choreForm.weekday_mask.has(day);
@@ -200,36 +207,38 @@ export function AdminDialogs({
                   </div>
                 </div>
               )}
-              <div className='grid gap-1 md:col-span-2'>
-                <Label>{t('description')}</Label>
+              <div className='grid gap-1.5 md:col-span-2'>
+                <Label className='text-sm font-semibold text-slate-700'>{t('description')}</Label>
                 <Textarea
                   value={choreForm.description}
                   onChange={(e) => setChoreForm((prev) => ({ ...prev, description: e.target.value }))}
                   placeholder={t('placeHolderDescription')}
+                  className='rounded-xl'
                 />
               </div>
             </div>
 
-            <div className='rounded-xl border p-3'>
+            <div className='rounded-2xl border border-slate-200 p-3'>
               <div className='flex items-center justify-between'>
-                <Label>{t('useDeadline')}</Label>
+                <Label className='text-sm font-semibold text-slate-700'>{t('useDeadline')}</Label>
                 <Switch
                   checked={choreForm.has_deadline}
                   onCheckedChange={(checked) => setChoreForm((prev) => ({ ...prev, has_deadline: checked }))}
                 />
               </div>
               <div className='mt-2 grid gap-2 md:grid-cols-2'>
-                <div className='grid gap-1'>
-                  <Label>{t('deadline')}</Label>
+                <div className='grid gap-1.5'>
+                  <Label className='text-sm font-semibold text-slate-700'>{t('deadline')}</Label>
                   <Input
                     type='time'
                     disabled={!choreForm.has_deadline}
                     value={choreForm.due_time}
                     onChange={(e) => setChoreForm((prev) => ({ ...prev, due_time: e.target.value }))}
+                    className='rounded-xl'
                   />
                 </div>
-                <div className='flex items-center justify-between rounded-xl border p-2'>
-                  <Label>{t('dueIfMissed')}</Label>
+                <div className='flex items-center justify-between rounded-2xl border p-2.5'>
+                  <Label className='text-sm font-semibold text-slate-700'>{t('dueIfMissed')}</Label>
                   <Switch
                     checked={choreForm.has_deadline && choreForm.alert_enabled}
                     onCheckedChange={(checked) => setChoreForm((prev) => ({ ...prev, alert_enabled: checked }))}
@@ -238,8 +247,8 @@ export function AdminDialogs({
               </div>
             </div>
 
-            <div className='flex items-center justify-between rounded-xl border p-3'>
-              <Label>{t('active')}</Label>
+            <div className='flex items-center justify-between rounded-2xl border p-3'>
+              <Label className='text-sm font-semibold text-slate-700'>{t('active')}</Label>
               <Switch checked={choreForm.active} onCheckedChange={(checked) => setChoreForm((prev) => ({ ...prev, active: checked }))} />
             </div>
 
@@ -259,18 +268,19 @@ export function AdminDialogs({
             <DialogTitle>{t('assignWeekOwner')}</DialogTitle>
           </DialogHeader>
           <form className='grid gap-3' onSubmit={submitWeekOwner}>
-            <div className='grid gap-1'>
-              <Label>{t('weekStart')}</Label>
+            <div className='grid gap-1.5'>
+              <Label className='text-sm font-semibold text-slate-700'>{t('weekStart')}</Label>
               <Input
                 type='date'
                 value={weekOwnerForm.week_start}
                 onChange={(e) => setWeekOwnerForm((prev) => ({ ...prev, week_start: e.target.value }))}
+                className='rounded-xl'
               />
             </div>
-            <div className='grid gap-1'>
-              <Label>{t('responsible')}</Label>
+            <div className='grid gap-1.5'>
+              <Label className='text-sm font-semibold text-slate-700'>{t('responsible')}</Label>
               <select
-                className='h-9 rounded-md border border-input bg-background px-3 text-sm'
+                className='h-9 rounded-xl border border-input bg-background px-3 text-sm transition-colors'
                 value={weekOwnerForm.person_id}
                 onChange={(e) => setWeekOwnerForm((prev) => ({ ...prev, person_id: e.target.value }))}
                 required
@@ -305,10 +315,10 @@ export function AdminDialogs({
             <DialogDescription>{instanceForm.work_date ? formatDay(instanceForm.work_date) : ''}</DialogDescription>
           </DialogHeader>
           <form className='grid gap-3' onSubmit={submitInstance}>
-            <div className='grid gap-1'>
-              <Label>{t('responsible')}</Label>
+            <div className='grid gap-1.5'>
+              <Label className='text-sm font-semibold text-slate-700'>{t('responsible')}</Label>
               <select
-                className='h-9 rounded-md border border-input bg-background px-3 text-sm'
+                className='h-9 rounded-xl border border-input bg-background px-3 text-sm transition-colors'
                 value={instanceForm.person_id}
                 onChange={(e) => setInstanceForm((prev) => ({ ...prev, person_id: e.target.value }))}
               >
@@ -320,32 +330,34 @@ export function AdminDialogs({
                 ))}
               </select>
             </div>
-            <div className='flex items-center justify-between rounded-xl border p-2'>
-              <Label>{t('disableInstance')}</Label>
+            <div className='flex items-center justify-between rounded-2xl border p-2.5'>
+              <Label className='text-sm font-semibold text-slate-700'>{t('disableInstance')}</Label>
               <Switch
                 checked={instanceForm.disabled}
                 onCheckedChange={(checked) => setInstanceForm((prev) => ({ ...prev, disabled: checked }))}
               />
             </div>
-            <div className='grid gap-1'>
-              <Label>{t('nameOverride')}</Label>
+            <div className='grid gap-1.5'>
+              <Label className='text-sm font-semibold text-slate-700'>{t('nameOverride')}</Label>
               <Input
                 value={instanceForm.name}
                 onChange={(e) => setInstanceForm((prev) => ({ ...prev, name: e.target.value }))}
+                className='rounded-xl'
               />
             </div>
-            <div className='grid gap-1'>
-              <Label>{t('descriptionOverride')}</Label>
+            <div className='grid gap-1.5'>
+              <Label className='text-sm font-semibold text-slate-700'>{t('descriptionOverride')}</Label>
               <Textarea
                 value={instanceForm.description}
                 onChange={(e) => setInstanceForm((prev) => ({ ...prev, description: e.target.value }))}
+                className='rounded-xl'
               />
             </div>
             <div className='grid gap-3 md:grid-cols-2'>
-              <div className='grid gap-1'>
-                <Label>{t('deadlineMode')}</Label>
+              <div className='grid gap-1.5'>
+                <Label className='text-sm font-semibold text-slate-700'>{t('deadlineMode')}</Label>
                 <select
-                  className='h-9 rounded-md border border-input bg-background px-3 text-sm'
+                  className='h-9 rounded-xl border border-input bg-background px-3 text-sm transition-colors'
                   value={instanceForm.deadline_mode}
                   onChange={(e) => setInstanceForm((prev) => ({ ...prev, deadline_mode: e.target.value }))}
                 >
@@ -354,18 +366,19 @@ export function AdminDialogs({
                   <option value='1'>{t('customDeadline')}</option>
                 </select>
               </div>
-              <div className='grid gap-1'>
-                <Label>{t('deadline')}</Label>
+              <div className='grid gap-1.5'>
+                <Label className='text-sm font-semibold text-slate-700'>{t('deadline')}</Label>
                 <Input
                   type='time'
                   disabled={instanceForm.deadline_mode !== '1'}
                   value={instanceForm.due_time}
                   onChange={(e) => setInstanceForm((prev) => ({ ...prev, due_time: e.target.value }))}
+                  className='rounded-xl'
                 />
               </div>
             </div>
-            <div className='flex items-center justify-between rounded-xl border p-2'>
-              <Label>{t('dueIfMissed')}</Label>
+            <div className='flex items-center justify-between rounded-2xl border p-2.5'>
+              <Label className='text-sm font-semibold text-slate-700'>{t('dueIfMissed')}</Label>
               <Switch
                 checked={instanceForm.deadline_mode === '1' && instanceForm.alert_enabled}
                 onCheckedChange={(checked) => setInstanceForm((prev) => ({ ...prev, alert_enabled: checked }))}
@@ -400,8 +413,8 @@ export function AdminDialogs({
           {settingsForm ? (
             <form className='grid gap-4' onSubmit={submitSettings}>
               <div className='grid gap-3 md:grid-cols-2'>
-                <div className='grid gap-1'>
-                  <Label>{t('language')}</Label>
+                <div className='grid gap-1.5'>
+                  <Label className='text-sm font-semibold text-slate-700'>{t('language')}</Label>
                   <Tabs
                     value={settingsForm.language}
                     onValueChange={(value) => {
@@ -409,31 +422,30 @@ export function AdminDialogs({
                       setLanguage(value);
                     }}
                   >
-                    <TabsList className='grid grid-cols-2'>
-                      <TabsTrigger value='en'>{t('english')}</TabsTrigger>
-                      <TabsTrigger value='no'>{t('norwegian')}</TabsTrigger>
+                    <TabsList className='grid grid-cols-2 rounded-xl'>
+                      <TabsTrigger value='en' className='rounded-lg'>{t('english')}</TabsTrigger>
+                      <TabsTrigger value='no' className='rounded-lg'>{t('norwegian')}</TabsTrigger>
                     </TabsList>
                   </Tabs>
                 </div>
-                <div className='grid gap-1'>
-                  <Label>{t('gamification')}</Label>
+                <div className='grid gap-1.5'>
+                  <Label className='text-sm font-semibold text-slate-700'>{t('gamification')}</Label>
                   <Tabs
                     value={settingsForm.gamification_mode || 'friendly'}
                     onValueChange={(value) => setSettingsForm((prev) => ({ ...prev, gamification_mode: value }))}
                   >
-                    <TabsList className='grid grid-cols-2'>
-                      <TabsTrigger value='friendly'>{t('friendly')}</TabsTrigger>
-                      <TabsTrigger value='hardcore'>{t('hardcore')}</TabsTrigger>
+                    <TabsList className='grid grid-cols-2 rounded-xl'>
+                      <TabsTrigger value='friendly' className='rounded-lg'>{t('friendly')}</TabsTrigger>
+                      <TabsTrigger value='hardcore' className='rounded-lg'>{t('hardcore')}</TabsTrigger>
                     </TabsList>
                   </Tabs>
                 </div>
               </div>
-
               <ColorSchemePicker t={t} />
 
-              <div className='grid gap-2 rounded-xl border p-3'>
+              <div className='grid gap-2 rounded-2xl border p-3'>
                 <div className='flex items-center justify-between'>
-                  <Label>{t('deadlineAlertsEnabled')}</Label>
+                  <Label className='text-sm font-semibold text-slate-700'>{t('deadlineAlertsEnabled')}</Label>
                   <Switch
                     checked={Boolean(settingsForm.deadline_alerts_enabled)}
                     onCheckedChange={(checked) =>
@@ -442,7 +454,7 @@ export function AdminDialogs({
                   />
                 </div>
                 <div className='flex items-center justify-between'>
-                  <Label>{t('weekOwnerReminder')}</Label>
+                  <Label className='text-sm font-semibold text-slate-700'>{t('weekOwnerReminder')}</Label>
                   <Switch
                     checked={Boolean(settingsForm.weekly_owner_alert_enabled)}
                     onCheckedChange={(checked) =>
@@ -496,8 +508,8 @@ export function AdminDialogs({
                   onChange={(value) => setSettingsForm((prev) => ({ ...prev, smtp_from: value }))}
                   InputComponent={Input}
                 />
-                <div className='flex items-center justify-between rounded-xl border p-2'>
-                  <Label>{t('smtpSecure')}</Label>
+                <div className='flex items-center justify-between rounded-2xl border p-2.5'>
+                  <Label className='text-sm font-semibold text-slate-700'>{t('smtpSecure')}</Label>
                   <Switch
                     checked={Boolean(settingsForm.smtp_secure)}
                     onCheckedChange={(checked) => setSettingsForm((prev) => ({ ...prev, smtp_secure: checked ? 1 : 0 }))}
