@@ -12,7 +12,38 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
+import { useTheme, THEMES, THEME_LABELS, THEME_COLORS } from '@/lib/theme';
+import { cn } from '@/lib/utils';
 import { Field } from './AdminShared';
+
+function ColorSchemePicker({ t }) {
+  const { theme, setTheme } = useTheme();
+
+  return (
+    <div className='grid gap-1.5'>
+      <Label>{t('colorScheme')}</Label>
+      <div className='flex flex-wrap gap-2'>
+        {THEMES.map((id) => (
+          <button
+            key={id}
+            type='button'
+            onClick={() => setTheme(id)}
+            className={cn(
+              'flex flex-col items-center gap-1 rounded-xl border-2 px-2.5 py-2 transition-all',
+              theme === id ? 'border-primary bg-accent' : 'border-slate-200 bg-white hover:border-slate-300'
+            )}
+          >
+            <div className='flex gap-0.5'>
+              <div className='h-5 w-5 rounded-full' style={{ background: THEME_COLORS[id][0] }} />
+              <div className='h-5 w-5 rounded-full' style={{ background: THEME_COLORS[id][1] }} />
+            </div>
+            <span className='text-xs font-medium text-slate-700'>{THEME_LABELS[id]}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export function AdminDialogs({
   t,
@@ -397,6 +428,9 @@ export function AdminDialogs({
                   </Tabs>
                 </div>
               </div>
+
+              <ColorSchemePicker t={t} />
+
               <div className='grid gap-2 rounded-xl border p-3'>
                 <div className='flex items-center justify-between'>
                   <Label>{t('deadlineAlertsEnabled')}</Label>

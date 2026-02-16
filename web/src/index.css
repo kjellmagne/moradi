@@ -26,6 +26,22 @@
     --radius: 0.75rem;
   }
 
+  [data-theme='violet'] {
+    --primary: 262 84% 57%;
+    --ring: 262 84% 57%;
+    --secondary: 262 38% 95%;
+    --accent: 262 72% 95%;
+    --accent-foreground: 262 70% 34%;
+  }
+
+  [data-theme='sunset'] {
+    --primary: 22 90% 52%;
+    --ring: 22 90% 52%;
+    --secondary: 24 44% 95%;
+    --accent: 24 90% 95%;
+    --accent-foreground: 24 74% 36%;
+  }
+
   * {
     @apply border-border;
   }
@@ -123,6 +139,31 @@
     box-shadow:
       inset 0 1px 2px rgba(255, 255, 255, 0.95),
       inset 0 -1px 1px rgba(142, 166, 197, 0.14);
+  }
+
+  .employee-card-done {
+    @apply border-primary/25 bg-primary/[0.06];
+    box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);
+  }
+
+  .employee-card-overdue {
+    @apply border-slate-200/80 bg-white;
+    border-left: 3px solid hsl(0 70% 62%);
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+  }
+
+  .employee-check-done {
+    @apply border-primary/40 bg-primary text-white hover:bg-primary;
+  }
+
+  .employee-check-overdue {
+    @apply bg-white text-slate-600;
+    border-color: hsl(0 50% 70%);
+    color: hsl(0 50% 58%);
+  }
+
+  .employee-today-column {
+    @apply border-primary/30 bg-primary/[0.08];
   }
 
   .mobile-app-shell {

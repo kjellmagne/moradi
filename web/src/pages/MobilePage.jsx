@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Calendar, CalendarDays, Check, ChevronLeft, ChevronRight, Circle, Clock3, ListChecks, UserRound } from 'lucide-react';
+import { Calendar, CalendarDays, Check, ChevronLeft, ChevronRight, Circle, Clock3, ListChecks, Palette, UserRound } from 'lucide-react';
 import {
   addDays,
   api,
@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useTheme, THEMES } from '@/lib/theme';
 
 const STORAGE_KEY = 'moradi.mobile.person';
 
@@ -61,7 +62,8 @@ const TEXT = {
     doneBy: 'Done by {name}',
     completedCount: 'Completed',
     pendingCount: 'Pending',
-    overdueCount: 'Late'
+    overdueCount: 'Late',
+    cycleTheme: 'Change color scheme'
   },
   no: {
     title: 'Moradi',
@@ -96,7 +98,8 @@ const TEXT = {
     doneBy: 'Fullført av {name}',
     completedCount: 'Fullført',
     pendingCount: 'Åpne',
-    overdueCount: 'Forsinket'
+    overdueCount: 'Forsinket',
+    cycleTheme: 'Bytt fargeskjema'
   }
 };
 
@@ -113,6 +116,7 @@ function statusVariant(state) {
 }
 
 export function MobilePage() {
+  const { theme, setTheme } = useTheme();
   const [language, setLanguage] = useState('en');
   const [people, setPeople] = useState([]);
   const [personId, setPersonId] = useState('');
@@ -221,21 +225,35 @@ export function MobilePage() {
         <CardHeader className='space-y-4 p-4'>
           <div className='flex items-start justify-between gap-3'>
             <div>
-              <p className='text-[10px] font-semibold uppercase tracking-[0.22em] text-sky-700/75'>{t('title')}</p>
+              <p className='text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-500'>{t('title')}</p>
               <CardTitle className='mt-1 text-xl text-slate-900'>{t('subtitle')}</CardTitle>
               <p className='mt-1 text-sm text-slate-600'>
                 {t('you')}: <strong className='text-slate-900'>{selectedPerson?.name || t('notSelected')}</strong>
               </p>
             </div>
-            <Button
-              variant='outline'
-              size='sm'
-              onClick={() => setPersonDialogOpen(true)}
-              className='moradi-soft-button h-9 rounded-full border-slate-200/90 bg-white/85 px-3'
-            >
-              <UserRound className='h-4 w-4' />
-              {t('choosePerson')}
-            </Button>
+            <div className='flex items-center gap-2'>
+              <Button
+                variant='outline'
+                size='icon'
+                onClick={() => {
+                  const index = THEMES.indexOf(theme);
+                  setTheme(THEMES[(index + 1) % THEMES.length]);
+                }}
+                className='moradi-soft-button h-9 w-9 rounded-full border-slate-200/90 bg-white/85'
+                title={t('cycleTheme')}
+              >
+                <Palette className='h-4 w-4' />
+              </Button>
+              <Button
+                variant='outline'
+                size='sm'
+                onClick={() => setPersonDialogOpen(true)}
+                className='moradi-soft-button h-9 rounded-full border-slate-200/90 bg-white/85 px-3'
+              >
+                <UserRound className='h-4 w-4' />
+                {t('choosePerson')}
+              </Button>
+            </div>
           </div>
 
           <div className='moradi-segmented grid grid-cols-[44px_1fr_44px] items-center gap-2 rounded-2xl p-2'>
@@ -292,8 +310,8 @@ export function MobilePage() {
 
           <div className='grid grid-cols-3 gap-2'>
             <div className='moradi-glass-strong rounded-2xl px-3 py-2 text-center'>
-              <p className='text-[11px] font-medium uppercase tracking-wide text-slate-500'>{t('completedCount')}</p>
-              <p className='text-lg font-semibold text-slate-900'>{summary.done}</p>
+              <p className='text-[11px] font-medium uppercase tracking-wide text-primary/80'>{t('completedCount')}</p>
+              <p className='text-lg font-semibold text-primary'>{summary.done}</p>
             </div>
             <div className='moradi-glass-strong rounded-2xl px-3 py-2 text-center'>
               <p className='text-[11px] font-medium uppercase tracking-wide text-slate-500'>{t('pendingCount')}</p>
@@ -335,9 +353,9 @@ export function MobilePage() {
                 className={cn(
                   'moradi-glass-strong rounded-2xl',
                   item.completion
-                    ? 'border-emerald-200/90 bg-emerald-50/80'
+                    ? 'employee-card-done'
                     : item.overdue
-                      ? 'border-red-200/90 bg-red-50/85'
+                      ? 'employee-card-overdue'
                       : 'border-slate-200/90 bg-white/88'
                 )}
               >
@@ -349,8 +367,10 @@ export function MobilePage() {
                       className={cn(
                         'moradi-soft-button h-10 w-10 rounded-xl border-slate-200/90',
                         item.completion
-                          ? 'border-emerald-300 bg-emerald-500 text-white hover:bg-emerald-500'
-                          : 'bg-white/90 text-slate-600'
+                          ? 'employee-check-done'
+                          : item.overdue
+                            ? 'employee-check-overdue'
+                            : 'bg-white/90 text-slate-600'
                       )}
                       onClick={() => toggle(item).catch((err) => setError(err.message))}
                     >
@@ -380,7 +400,7 @@ export function MobilePage() {
                       </div>
 
                       {item.completion?.completed_by_name ? (
-                        <p className='mt-1 text-xs text-slate-600'>
+                        <p className='mt-1 text-xs text-slate-500'>
                           {t('doneBy', { name: item.completion.completed_by_name })}
                         </p>
                       ) : null}
