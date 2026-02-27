@@ -30,7 +30,7 @@ import {
   addDaysToDateKey,
   getPerformanceStats
 } from './db.js';
-import { startScheduler } from './scheduler.js';
+import { sendTestEmail, sendTestSms, startScheduler } from './scheduler.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -174,6 +174,52 @@ app.put('/api/settings', (req, res, next) => {
   try {
     const settings = updateSettings(req.body || {});
     res.json(settings);
+  } catch (error) {
+    next(error);
+  }
+});
+
+function mergedSettingsForTest(settingsPatch = {}) {
+  const base = getSettings();
+  if (!settingsPatch || typeof settingsPatch !== 'object') {
+    return base;
+  }
+  return {
+    ...base,
+    ...settingsPatch
+  };
+}
+
+app.post('/api/settings/test-email', async (req, res, next) => {
+  try {
+    const payload = req.body || {};
+    const settings = mergedSettingsForTest(payload.settings);
+    const to = String(payload.to || '').trim();
+    const subject = String(payload.subject || '').trim();
+    const message = String(payload.message || '').trim();
+    const result = await sendTestEmail({ settings, to, subject, message });
+    res.json({
+      ok: true,
+      message: `Test email sent to ${result.recipient}`,
+      ...result
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post('/api/settings/test-sms', async (req, res, next) => {
+  try {
+    const payload = req.body || {};
+    const settings = mergedSettingsForTest(payload.settings);
+    const to = String(payload.to || '').trim();
+    const message = String(payload.message || '').trim();
+    const result = await sendTestSms({ settings, to, message });
+    res.json({
+      ok: true,
+      message: `Test SMS sent to ${result.recipient}`,
+      ...result
+    });
   } catch (error) {
     next(error);
   }

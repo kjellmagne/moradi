@@ -54,7 +54,22 @@ function normalizeUrl(value) {
 }
 
 function hasSmtpSettings(settings) {
-  return Boolean(settings.smtp_host && settings.smtp_user && settings.smtp_pass && settings.smtp_from);
+  return Boolean(settings.smtp_host && settings.smtp_from);
+}
+
+function smtpAuthFromSettings(settings) {
+  const user = String(settings.smtp_user || '').trim();
+  const pass = String(settings.smtp_pass || '').trim();
+
+  if (!user && !pass) {
+    return null;
+  }
+
+  if (!user || !pass) {
+    throw new Error('smtp_user and smtp_pass must both be set, or both left empty');
+  }
+
+  return { user, pass };
 }
 
 async function sendViaWebhook({ url, payload }) {
@@ -65,24 +80,66 @@ async function sendViaWebhook({ url, payload }) {
   });
 }
 
-async function sendViaSmsGateway({ url, payload }) {
-  await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  });
+function normalizeSmsMessageType(value) {
+  const normalized = String(value || '').trim();
+  return normalized || 'sms.automatic';
+}
+
+function buildSmsGatewayRequestUrl({ settings, to, message }) {
+  const gatewayUrl = normalizeUrl(settings.sms_gateway_url);
+  if (!gatewayUrl) {
+    throw new Error('sms_gateway_url is required');
+  }
+
+  const target = String(to || '').trim();
+  if (!target) {
+    throw new Error('SMS recipient is required');
+  }
+
+  const text = String(message || '').trim();
+  if (!text) {
+    throw new Error('SMS message is required');
+  }
+
+  const username = String(settings.sms_gateway_username || '').trim();
+  const password = String(settings.sms_gateway_password || '').trim();
+  const messageType = normalizeSmsMessageType(settings.sms_gateway_message_type);
+
+  const url = new URL(gatewayUrl);
+  if (username) {
+    url.searchParams.set('username', username);
+  }
+  if (password) {
+    url.searchParams.set('password', password);
+  }
+  url.searchParams.set('to', target);
+  url.searchParams.set('message', text);
+  url.searchParams.set('message-type', messageType);
+  return url.toString();
+}
+
+async function sendViaSmsGateway({ settings, to, message }) {
+  const requestUrl = buildSmsGatewayRequestUrl({ settings, to, message });
+  const response = await fetch(requestUrl, { method: 'GET' });
+  const body = await response.text();
+  if (!response.ok) {
+    throw new Error(`SMS gateway error (${response.status}): ${body || 'unknown response'}`);
+  }
+  return body;
 }
 
 async function sendViaSmtp({ settings, recipientEmail, subject, message, payload }) {
-  const transporter = nodemailer.createTransport({
+  const transportOptions = {
     host: settings.smtp_host,
     port: Number(settings.smtp_port) || 587,
-    secure: Number(settings.smtp_secure) === 1,
-    auth: {
-      user: settings.smtp_user,
-      pass: settings.smtp_pass
-    }
-  });
+    secure: Number(settings.smtp_secure) === 1
+  };
+  const auth = smtpAuthFromSettings(settings);
+  if (auth) {
+    transportOptions.auth = auth;
+  }
+
+  const transporter = nodemailer.createTransport(transportOptions);
 
   await transporter.sendMail({
     from: settings.smtp_from,
@@ -124,15 +181,7 @@ async function dispatchNotification({ settings, type, message, person, payload }
   }
 
   if (smsGatewayUrl && recipientPhone) {
-    await sendViaSmsGateway({
-      url: smsGatewayUrl,
-      payload: {
-        to: recipientPhone,
-        message,
-        type,
-        context: notificationPayload
-      }
-    });
+    await sendViaSmsGateway({ settings, to: recipientPhone, message });
     delivered = true;
   }
 
@@ -159,6 +208,79 @@ async function dispatchNotification({ settings, type, message, person, payload }
   if (!delivered) {
     console.log(`[ALERT] ${type}: ${message}`);
   }
+}
+
+function defaultTestEmailSubject(language) {
+  return language === 'no' ? 'Moradi test e-post' : 'Moradi test email';
+}
+
+function defaultTestEmailMessage(language) {
+  return language === 'no'
+    ? 'Dette er en testmelding fra Moradi.'
+    : 'This is a test message from Moradi.';
+}
+
+function defaultTestSmsMessage(language) {
+  return language === 'no'
+    ? 'Moradi testmelding: SMS-oppsett fungerer.'
+    : 'Moradi test message: SMS configuration works.';
+}
+
+export async function sendTestEmail({
+  settings,
+  to,
+  subject = '',
+  message = ''
+}) {
+  const recipientEmail = String(to || '').trim();
+  if (!recipientEmail) {
+    throw new Error('recipient email is required');
+  }
+  if (!hasSmtpSettings(settings)) {
+    throw new Error('smtp_host and smtp_from are required');
+  }
+
+  const language = settings.language === 'no' ? 'no' : 'en';
+  const finalSubject = String(subject || '').trim() || defaultTestEmailSubject(language);
+  const finalMessage = String(message || '').trim() || defaultTestEmailMessage(language);
+
+  await sendViaSmtp({
+    settings,
+    recipientEmail,
+    subject: finalSubject,
+    message: finalMessage,
+    payload: { type: 'settings_test_email' }
+  });
+
+  return {
+    delivered: true,
+    recipient: recipientEmail,
+    subject: finalSubject
+  };
+}
+
+export async function sendTestSms({ settings, to, message = '' }) {
+  const language = settings.language === 'no' ? 'no' : 'en';
+  const finalMessage = String(message || '').trim() || defaultTestSmsMessage(language);
+  const target = String(to || '').trim();
+  if (!target) {
+    throw new Error('recipient phone is required');
+  }
+  if (!normalizeUrl(settings.sms_gateway_url)) {
+    throw new Error('sms_gateway_url is required');
+  }
+
+  const gatewayResponse = await sendViaSmsGateway({
+    settings,
+    to: target,
+    message: finalMessage
+  });
+
+  return {
+    delivered: true,
+    recipient: target,
+    response: gatewayResponse
+  };
 }
 
 async function runDeadlineAlertScan() {

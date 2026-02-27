@@ -18,6 +18,9 @@ const DEFAULT_SETTINGS = Object.freeze({
   weekly_owner_alert_enabled: 1,
   alert_webhook_url: '',
   sms_gateway_url: '',
+  sms_gateway_username: '',
+  sms_gateway_password: '',
+  sms_gateway_message_type: 'sms.automatic',
   smtp_host: '',
   smtp_port: 587,
   smtp_secure: 0,
@@ -303,6 +306,15 @@ function settingsFromMap(map) {
     ),
     alert_webhook_url: normalizeString(map.get('alert_webhook_url') || DEFAULT_SETTINGS.alert_webhook_url),
     sms_gateway_url: normalizeString(map.get('sms_gateway_url') || DEFAULT_SETTINGS.sms_gateway_url),
+    sms_gateway_username: normalizeString(
+      map.get('sms_gateway_username') || DEFAULT_SETTINGS.sms_gateway_username
+    ),
+    sms_gateway_password: normalizeString(
+      map.get('sms_gateway_password') || DEFAULT_SETTINGS.sms_gateway_password
+    ),
+    sms_gateway_message_type: normalizeString(
+      map.get('sms_gateway_message_type') || DEFAULT_SETTINGS.sms_gateway_message_type
+    ),
     smtp_host: normalizeString(map.get('smtp_host') || DEFAULT_SETTINGS.smtp_host),
     smtp_port: normalizePort(map.get('smtp_port'), DEFAULT_SETTINGS.smtp_port),
     smtp_secure: normalizeBoolInt(map.get('smtp_secure'), DEFAULT_SETTINGS.smtp_secure),
@@ -336,6 +348,15 @@ export function updateSettings(patch = {}) {
     sms_gateway_url: Object.prototype.hasOwnProperty.call(patch, 'sms_gateway_url')
       ? normalizeString(patch.sms_gateway_url)
       : current.sms_gateway_url,
+    sms_gateway_username: Object.prototype.hasOwnProperty.call(patch, 'sms_gateway_username')
+      ? normalizeString(patch.sms_gateway_username)
+      : current.sms_gateway_username,
+    sms_gateway_password: Object.prototype.hasOwnProperty.call(patch, 'sms_gateway_password')
+      ? normalizeString(patch.sms_gateway_password)
+      : current.sms_gateway_password,
+    sms_gateway_message_type: Object.prototype.hasOwnProperty.call(patch, 'sms_gateway_message_type')
+      ? normalizeString(patch.sms_gateway_message_type)
+      : current.sms_gateway_message_type,
     smtp_host: Object.prototype.hasOwnProperty.call(patch, 'smtp_host')
       ? normalizeString(patch.smtp_host)
       : current.smtp_host,

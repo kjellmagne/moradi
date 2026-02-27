@@ -174,12 +174,23 @@ const TEXT = {
     refresh: 'Refresh',
     alertWebhookUrl: 'Alert webhook URL',
     smsApiGatewayUrl: 'SMS API gateway URL',
+    smsApiUsername: 'SMS API username',
+    smsApiPassword: 'SMS API password',
+    smsMessageType: 'SMS message type',
     smtpHost: 'SMTP host',
     smtpPort: 'SMTP port',
-    smtpUser: 'SMTP user',
-    smtpPass: 'SMTP pass',
+    smtpUser: 'SMTP user (optional)',
+    smtpPass: 'SMTP pass (optional)',
     smtpFrom: 'SMTP from',
     smtpSecure: 'SMTP secure',
+    testEmailTo: 'Test email to',
+    testSmsTo: 'Test SMS to',
+    testSmsMessage: 'Test SMS message',
+    sendTestEmail: 'Send test email',
+    sendTestSms: 'Send test SMS',
+    sending: 'Sending...',
+    testSuccess: 'Test sent successfully',
+    testFailed: 'Test failed',
     loading: 'Loading...'
   },
   no: {
@@ -325,12 +336,23 @@ const TEXT = {
     refresh: 'Oppdater',
     alertWebhookUrl: 'Varsel-webhook URL',
     smsApiGatewayUrl: 'SMS API gateway URL',
+    smsApiUsername: 'SMS API brukernavn',
+    smsApiPassword: 'SMS API passord',
+    smsMessageType: 'SMS meldingstype',
     smtpHost: 'SMTP vert',
     smtpPort: 'SMTP port',
-    smtpUser: 'SMTP bruker',
-    smtpPass: 'SMTP passord',
+    smtpUser: 'SMTP bruker (valgfri)',
+    smtpPass: 'SMTP passord (valgfritt)',
     smtpFrom: 'SMTP fra',
     smtpSecure: 'SMTP sikker',
+    testEmailTo: 'Test e-post til',
+    testSmsTo: 'Test SMS til',
+    testSmsMessage: 'Test SMS-melding',
+    sendTestEmail: 'Send test e-post',
+    sendTestSms: 'Send test SMS',
+    sending: 'Sender...',
+    testSuccess: 'Test sendt',
+    testFailed: 'Test feilet',
     loading: 'Laster...'
   }
 };
@@ -614,6 +636,28 @@ export function AdminPage() {
     return t('everyDays', { days: chore.interval_days });
   }
 
+  function normalizedSettingsPayload(form) {
+    const source = form || {};
+    return {
+      ...source,
+      language: normalizeLanguage(source.language),
+      gamification_mode: source.gamification_mode || 'friendly',
+      deadline_alerts_enabled: source.deadline_alerts_enabled ? 1 : 0,
+      weekly_owner_alert_enabled: source.weekly_owner_alert_enabled ? 1 : 0,
+      alert_webhook_url: String(source.alert_webhook_url || '').trim(),
+      sms_gateway_url: String(source.sms_gateway_url || '').trim(),
+      sms_gateway_username: String(source.sms_gateway_username || '').trim(),
+      sms_gateway_password: String(source.sms_gateway_password || '').trim(),
+      sms_gateway_message_type: String(source.sms_gateway_message_type || 'sms.automatic').trim() || 'sms.automatic',
+      smtp_host: String(source.smtp_host || '').trim(),
+      smtp_port: Number(source.smtp_port || 587),
+      smtp_secure: source.smtp_secure ? 1 : 0,
+      smtp_user: String(source.smtp_user || '').trim(),
+      smtp_pass: String(source.smtp_pass || '').trim(),
+      smtp_from: String(source.smtp_from || '').trim()
+    };
+  }
+
   async function submitPerson(event) {
     event.preventDefault();
     const payload = {
@@ -775,21 +819,32 @@ export function AdminPage() {
 
   async function submitSettings(event) {
     event.preventDefault();
-    const next = await api.updateSettings({
-      ...settingsForm,
-      language: normalizeLanguage(settingsForm.language),
-      gamification_mode: settingsForm.gamification_mode || 'friendly',
-      deadline_alerts_enabled: settingsForm.deadline_alerts_enabled ? 1 : 0,
-      weekly_owner_alert_enabled: settingsForm.weekly_owner_alert_enabled ? 1 : 0,
-      smtp_port: Number(settingsForm.smtp_port || 587),
-      smtp_secure: settingsForm.smtp_secure ? 1 : 0
-    });
+    const next = await api.updateSettings(normalizedSettingsPayload(settingsForm));
 
     setSettings(next);
     setSettingsForm(next);
     setLanguage(normalizeLanguage(next.language));
     setSettingsOpen(false);
     await loadStats();
+  }
+
+  async function testSettingsEmail({ to, subject, message }) {
+    const result = await api.testSettingsEmail({
+      settings: normalizedSettingsPayload(settingsForm),
+      to,
+      subject,
+      message
+    });
+    return result;
+  }
+
+  async function testSettingsSms({ to, message }) {
+    const result = await api.testSettingsSms({
+      settings: normalizedSettingsPayload(settingsForm),
+      to,
+      message
+    });
+    return result;
   }
 
   function openSettings() {
@@ -979,6 +1034,8 @@ export function AdminPage() {
         language={language}
         setLanguage={(value) => setLanguage(normalizeLanguage(value))}
         submitSettings={submitSettings}
+        testSettingsEmail={testSettingsEmail}
+        testSettingsSms={testSettingsSms}
         formatDay={formatDay}
       />
     </AdminLayout>

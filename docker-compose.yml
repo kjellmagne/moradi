@@ -9,7 +9,4 @@ services:
       NODE_ENV: production
       PORT: 3000
     volumes:
-      - moradi-data:/app/data
-
-volumes:
-  moradi-data:
+      - /opt/apps/moradi/data:/app/data

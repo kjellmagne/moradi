@@ -120,8 +120,16 @@ Delivery channels (if configured):
 
 - webhook
 - SMS gateway
-- SMTP email
+- SMTP email (authenticated or relay/no-auth)
 - fallback to server log when no channel is available
+
+SMS gateway format used by Moradi:
+
+- HTTP `GET` to `sms_gateway_url`
+- query params: `username`, `password`, `to`, `message`, `message-type`
+- default `message-type` is `sms.automatic`
+
+In Admin settings you can send test email and test SMS with current (unsaved) configuration.
 
 ## Core data tables
 
@@ -153,12 +161,12 @@ docker build -t moradi:latest .
 Run container:
 
 ```bash
-docker run --name moradi -p 3000:3000 -v moradi-data:/app/data moradi:latest
+docker run --name moradi -p 3000:3000 -v /opt/apps/moradi/data:/app/data moradi:latest
 ```
 
 `/app/data` contains `chores.db`. Mounting this path keeps data persistent across restarts/redeploys.
 
-Run with Compose (persistent named volume):
+Run with Compose (persistent host path `/opt/apps/moradi/data`):
 
 ```bash
 docker compose up -d

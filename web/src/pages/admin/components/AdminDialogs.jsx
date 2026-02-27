@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -80,8 +81,69 @@ export function AdminDialogs({
   language,
   setLanguage,
   submitSettings,
+  testSettingsEmail,
+  testSettingsSms,
   formatDay
 }) {
+  const [testEmailTo, setTestEmailTo] = useState('');
+  const [testSmsTo, setTestSmsTo] = useState('');
+  const [testSmsMessage, setTestSmsMessage] = useState('');
+  const [testingEmail, setTestingEmail] = useState(false);
+  const [testingSms, setTestingSms] = useState(false);
+  const [testFeedback, setTestFeedback] = useState({ tone: '', message: '' });
+
+  useEffect(() => {
+    if (!settingsOpen) {
+      return;
+    }
+
+    if (!testEmailTo) {
+      const personWithEmail = (people || []).find((person) => String(person.email || '').trim());
+      if (personWithEmail?.email) {
+        setTestEmailTo(String(personWithEmail.email));
+      }
+    }
+    if (!testSmsTo) {
+      const personWithPhone = (people || []).find((person) => String(person.phone || '').trim());
+      if (personWithPhone?.phone) {
+        setTestSmsTo(String(personWithPhone.phone));
+      }
+    }
+  }, [settingsOpen, people, testEmailTo, testSmsTo]);
+
+  async function runEmailTest() {
+    try {
+      setTestFeedback({ tone: '', message: '' });
+      setTestingEmail(true);
+      const response = await testSettingsEmail({
+        to: testEmailTo,
+        subject: '',
+        message: ''
+      });
+      setTestFeedback({ tone: 'ok', message: response?.message || t('testSuccess') });
+    } catch (error) {
+      setTestFeedback({ tone: 'error', message: `${t('testFailed')}: ${error.message}` });
+    } finally {
+      setTestingEmail(false);
+    }
+  }
+
+  async function runSmsTest() {
+    try {
+      setTestFeedback({ tone: '', message: '' });
+      setTestingSms(true);
+      const response = await testSettingsSms({
+        to: testSmsTo,
+        message: testSmsMessage
+      });
+      setTestFeedback({ tone: 'ok', message: response?.message || t('testSuccess') });
+    } catch (error) {
+      setTestFeedback({ tone: 'error', message: `${t('testFailed')}: ${error.message}` });
+    } finally {
+      setTestingSms(false);
+    }
+  }
+
   return (
     <>
       <Dialog open={personDialogOpen} onOpenChange={setPersonDialogOpen}>
@@ -477,6 +539,25 @@ export function AdminDialogs({
                   InputComponent={Input}
                 />
                 <Field
+                  label={t('smsApiUsername')}
+                  value={settingsForm.sms_gateway_username || ''}
+                  onChange={(value) => setSettingsForm((prev) => ({ ...prev, sms_gateway_username: value }))}
+                  InputComponent={Input}
+                />
+                <Field
+                  label={t('smsApiPassword')}
+                  type='password'
+                  value={settingsForm.sms_gateway_password || ''}
+                  onChange={(value) => setSettingsForm((prev) => ({ ...prev, sms_gateway_password: value }))}
+                  InputComponent={Input}
+                />
+                <Field
+                  label={t('smsMessageType')}
+                  value={settingsForm.sms_gateway_message_type || 'sms.automatic'}
+                  onChange={(value) => setSettingsForm((prev) => ({ ...prev, sms_gateway_message_type: value }))}
+                  InputComponent={Input}
+                />
+                <Field
                   label={t('smtpHost')}
                   value={settingsForm.smtp_host || ''}
                   onChange={(value) => setSettingsForm((prev) => ({ ...prev, smtp_host: value }))}
@@ -515,6 +596,60 @@ export function AdminDialogs({
                     onCheckedChange={(checked) => setSettingsForm((prev) => ({ ...prev, smtp_secure: checked ? 1 : 0 }))}
                   />
                 </div>
+              </div>
+              <div className='grid gap-3 rounded-2xl border p-3'>
+                <div className='grid gap-3 md:grid-cols-2'>
+                  <Field
+                    label={t('testEmailTo')}
+                    value={testEmailTo}
+                    onChange={setTestEmailTo}
+                    InputComponent={Input}
+                  />
+                  <div className='flex items-end'>
+                    <Button
+                      type='button'
+                      variant='outline'
+                      className='w-full'
+                      onClick={() => runEmailTest().catch(() => {})}
+                      disabled={testingEmail || !testEmailTo}
+                    >
+                      {testingEmail ? t('sending') : t('sendTestEmail')}
+                    </Button>
+                  </div>
+                  <Field
+                    label={t('testSmsTo')}
+                    value={testSmsTo}
+                    onChange={setTestSmsTo}
+                    InputComponent={Input}
+                  />
+                  <div className='flex items-end'>
+                    <Button
+                      type='button'
+                      variant='outline'
+                      className='w-full'
+                      onClick={() => runSmsTest().catch(() => {})}
+                      disabled={testingSms || !testSmsTo}
+                    >
+                      {testingSms ? t('sending') : t('sendTestSms')}
+                    </Button>
+                  </div>
+                </div>
+                <Field
+                  label={t('testSmsMessage')}
+                  value={testSmsMessage}
+                  onChange={setTestSmsMessage}
+                  InputComponent={Textarea}
+                />
+                {testFeedback.message ? (
+                  <p
+                    className={cn(
+                      'text-sm font-medium',
+                      testFeedback.tone === 'error' ? 'text-red-600' : 'text-emerald-700'
+                    )}
+                  >
+                    {testFeedback.message}
+                  </p>
+                ) : null}
               </div>
               <DialogFooter>
                 <Button type='button' variant='outline' onClick={closeSettings}>

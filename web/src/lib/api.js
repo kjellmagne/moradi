@@ -63,7 +63,11 @@ export const api = {
     return request(`/api/stats${query ? `?${query}` : ''}`);
   },
   getSettings: () => request('/api/settings'),
-  updateSettings: (payload) => request('/api/settings', { method: 'PUT', body: JSON.stringify(payload) })
+  updateSettings: (payload) => request('/api/settings', { method: 'PUT', body: JSON.stringify(payload) }),
+  testSettingsEmail: (payload) =>
+    request('/api/settings/test-email', { method: 'POST', body: JSON.stringify(payload) }),
+  testSettingsSms: (payload) =>
+    request('/api/settings/test-sms', { method: 'POST', body: JSON.stringify(payload) })
 };
 
 export function todayKey() {
