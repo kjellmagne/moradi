@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { cn } from '@/lib/utils';
 
-export function BottomSheet({ open, onClose, title, description, children }) {
+export function BottomSheet({ open, onClose, title, description, children, sheetClassName }) {
   const [state, setState] = useState('closed');
   const sheetRef = useRef(null);
   const dragStartY = useRef(0);
@@ -84,7 +85,7 @@ export function BottomSheet({ open, onClose, title, description, children }) {
       />
       <div
         ref={sheetRef}
-        className='bottom-sheet'
+        className={cn('bottom-sheet', sheetClassName)}
         data-state={state}
         role='dialog'
         aria-modal='true'

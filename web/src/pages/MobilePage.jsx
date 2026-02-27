@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Calendar, CalendarDays, Check, ChevronLeft, ChevronRight, Circle, Clock3, ListChecks, Palette, Sparkles, UserRound } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { AlertCircle, CalendarDays, Check, ChevronLeft, ChevronRight, ListChecks, Settings2, Sparkles, UserRound } from 'lucide-react';
 import {
   addDays,
   api,
@@ -7,14 +7,14 @@ import {
   localDateFromKey,
   startOfWeek,
   todayKey,
+  toDateKey,
   weekNumberFromDateKey
 } from '@/lib/api';
 import { localeForLanguage, normalizeLanguage, tr } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
-import { Input } from '@/components/ui/input';
 import { BottomSheet } from '@/components/BottomSheet';
-import { useSwipeX, useSwipeCard } from '@/components/useSwipe';
-import { useTheme, THEMES } from '@/lib/theme';
+import { useSwipeX } from '@/components/useSwipe';
+import { useTheme, THEMES, THEME_COLORS } from '@/lib/theme';
 
 const STORAGE_KEY = 'moradi.mobile.person';
 
@@ -29,15 +29,22 @@ const TEXT = {
     you: 'You',
     chores: 'Chores',
     weeks: 'Week owners',
+    settings: 'Settings',
+    themeChoice: 'Theme',
+    currentPerson: 'Current person',
+    changePerson: 'Change person',
     noChores: 'No chores assigned for this day.',
     noChoresHint: 'Enjoy the free time!',
     noWeeks: 'No week owners configured.',
     previousDay: 'Previous day',
     nextDay: 'Next day',
+    previousMonth: 'Previous month',
+    nextMonth: 'Next month',
     openCalendar: 'Open calendar',
     pickDate: 'Pick date',
     date: 'Date',
     deadline: 'Deadline',
+    deadlineExpired: 'Deadline passed',
     unassigned: 'Unassigned',
     done: 'Done',
     open: 'Open',
@@ -68,15 +75,22 @@ const TEXT = {
     you: 'Deg',
     chores: 'Gjøremål',
     weeks: 'Ukeansvar',
+    settings: 'Innstillinger',
+    themeChoice: 'Tema',
+    currentPerson: 'Aktiv person',
+    changePerson: 'Endre person',
     noChores: 'Ingen gjøremål denne dagen.',
     noChoresHint: 'Nyt fritiden!',
     noWeeks: 'Ingen ukeansvar satt.',
     previousDay: 'Forrige dag',
     nextDay: 'Neste dag',
+    previousMonth: 'Forrige måned',
+    nextMonth: 'Neste måned',
     openCalendar: 'Åpne kalender',
     pickDate: 'Velg dato',
     date: 'Dato',
     deadline: 'Frist',
+    deadlineExpired: 'Frist utløpt',
     unassigned: 'Ikke tildelt',
     done: 'Fullført',
     open: 'Åpen',
@@ -110,90 +124,6 @@ function initials(name) {
   return name.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2);
 }
 
-function ChoreCard({ item, index, t, onToggle, disabled }) {
-  const state = choreState(item);
-  const swipe = useSwipeCard({
-    onSwipeRight: state !== 'done' ? onToggle : undefined,
-    enabled: state !== 'done' && !disabled
-  });
-
-  return (
-    <div
-      ref={swipe.ref}
-      onTouchStart={swipe.onTouchStart}
-      onTouchMove={swipe.onTouchMove}
-      onTouchEnd={swipe.onTouchEnd}
-      className={cn(
-        'chore-card animate-stagger-in',
-        `stagger-${Math.min(index + 1, 10)}`,
-        state === 'done' && 'chore-card-done',
-        state === 'overdue' && 'chore-card-overdue',
-        state === 'open' && 'chore-card-open'
-      )}
-    >
-      <div className='flex items-center gap-3'>
-        <button
-          type='button'
-          onClick={onToggle}
-          disabled={disabled}
-          className={cn(
-            'check-circle h-11 w-11 shrink-0 touch-target',
-            state === 'done' && 'check-circle-done',
-            state === 'overdue' && 'check-circle-overdue',
-            state === 'open' && 'check-circle-open'
-          )}
-        >
-          {state === 'done' ? (
-            <Check className='h-5 w-5 animate-check-bounce' />
-          ) : (
-            <Circle className='h-5 w-5' />
-          )}
-        </button>
-
-        <div className='min-w-0 flex-1'>
-          <p className={cn(
-            'text-[15px] font-semibold leading-tight',
-            state === 'done' ? 'text-slate-400 line-through' : 'text-slate-900'
-          )}>
-            {item.chore_name}
-          </p>
-
-          <div className='mt-1.5 flex flex-wrap items-center gap-1.5'>
-            {item.responsible_person ? (
-              <span className='inline-flex items-center gap-1 rounded-full bg-theme-100 px-2 py-0.5 text-[11px] font-medium text-theme-700'>
-                <UserRound className='h-3 w-3' />
-                {item.responsible_person.name}
-              </span>
-            ) : (
-              <span className='inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500'>
-                {t('unassigned')}
-              </span>
-            )}
-            {item.due_time ? (
-              <span className='inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600'>
-                <Clock3 className='h-3 w-3' />
-                {item.due_time}
-              </span>
-            ) : null}
-          </div>
-
-          {item.completion?.completed_by_name ? (
-            <p className='mt-1 text-xs text-slate-400'>
-              {t('doneBy', { name: item.completion.completed_by_name })}
-            </p>
-          ) : null}
-        </div>
-
-        {state !== 'done' && (
-          <div className='shrink-0'>
-            <ChevronRight className='h-4 w-4 text-slate-300' />
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
 export function MobilePage() {
   const { theme, setTheme } = useTheme();
   const [language, setLanguage] = useState('en');
@@ -204,9 +134,13 @@ export function MobilePage() {
   const [weekOwners, setWeekOwners] = useState([]);
   const [error, setError] = useState('');
   const [personSheetOpen, setPersonSheetOpen] = useState(false);
+  const [calendarSheetOpen, setCalendarSheetOpen] = useState(false);
+  const [calendarMonth, setCalendarMonth] = useState(() => {
+    const current = localDateFromKey(todayKey());
+    return new Date(current.getFullYear(), current.getMonth(), 1);
+  });
   const [activeTab, setActiveTab] = useState('chores');
   const [slideDirection, setSlideDirection] = useState('right');
-  const dateInputRef = useRef(null);
 
   const locale = localeForLanguage(language);
   const t = (key, vars = {}) => tr(TEXT, language, key, vars);
@@ -226,7 +160,33 @@ export function MobilePage() {
     return result;
   }, [plan]);
 
-  const progressPercent = summary.total > 0 ? Math.round((summary.done / summary.total) * 100) : 0;
+  const selectedDateObj = useMemo(() => localDateFromKey(date), [date]);
+
+  const monthLabel = useMemo(
+    () => new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric' }).format(calendarMonth),
+    [calendarMonth, locale]
+  );
+
+  const weekdayLabels = useMemo(() => {
+    const monday = new Date(2024, 0, 1);
+    return Array.from({ length: 7 }, (_, index) =>
+      new Intl.DateTimeFormat(locale, { weekday: 'short' }).format(new Date(2024, 0, monday.getDate() + index))
+    );
+  }, [locale]);
+
+  const calendarCells = useMemo(() => {
+    const year = calendarMonth.getFullYear();
+    const month = calendarMonth.getMonth();
+    const first = new Date(year, month, 1);
+    const weekday = (first.getDay() + 6) % 7;
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+    const cells = [];
+    for (let i = 0; i < weekday; i += 1) cells.push(null);
+    for (let day = 1; day <= daysInMonth; day += 1) cells.push(new Date(year, month, day));
+    while (cells.length % 7 !== 0) cells.push(null);
+    return cells;
+  }, [calendarMonth]);
 
   async function loadAll() {
     const [settings, peopleRows] = await Promise.all([api.getSettings(), api.getPeople()]);
@@ -295,16 +255,12 @@ export function MobilePage() {
   });
 
   function openDatePicker() {
-    if (!dateInputRef.current) return;
-    if (typeof dateInputRef.current.showPicker === 'function') {
-      dateInputRef.current.showPicker();
-      return;
-    }
-    dateInputRef.current.focus();
+    setCalendarMonth(new Date(selectedDateObj.getFullYear(), selectedDateObj.getMonth(), 1));
+    setCalendarSheetOpen(true);
   }
 
-  function formatDateLabel(dateKey) {
-    return new Intl.DateTimeFormat(locale, { weekday: 'long', month: 'short', day: 'numeric' }).format(
+  function formatDateHeading(dateKey) {
+    return new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'long', year: 'numeric' }).format(
       localDateFromKey(dateKey)
     );
   }
@@ -315,151 +271,71 @@ export function MobilePage() {
     );
   }
 
-  const isToday = date === todayKey();
+  function shiftCalendarMonth(delta) {
+    setCalendarMonth((value) => new Date(value.getFullYear(), value.getMonth() + delta, 1));
+  }
+
+  function themeLabel(id) {
+    if (language === 'no') {
+      if (id === 'ocean') return 'Havblå';
+      if (id === 'sunset') return 'Solnedgang';
+      return 'Violet';
+    }
+    if (id === 'ocean') return 'Ocean';
+    if (id === 'sunset') return 'Sunset';
+    return 'Violet';
+  }
 
   return (
-    <div className='mobile-app-shell mx-auto w-full max-w-xl pb-6 pt-2'>
-      {/* ── Header ────────────────────────────────────── */}
-      <div className='sticky top-0 z-20 px-4 pt-2 pb-3'>
-        <div className='moradi-glass-panel rounded-3xl p-4'>
-          {/* Top row: brand + person + theme */}
-          <div className='flex items-center justify-between'>
-            <div>
-              <p className='text-[10px] font-bold uppercase tracking-[0.25em] text-theme-500'>{t('title')}</p>
-              <h1 className='mt-0.5 text-lg font-bold text-slate-900'>{t('subtitle')}</h1>
-            </div>
-            <div className='flex items-center gap-2'>
-              <button
-                type='button'
-                onClick={() => { const idx = THEMES.indexOf(theme); setTheme(THEMES[(idx + 1) % THEMES.length]); }}
-                className='flex h-8 w-8 items-center justify-center rounded-full bg-theme-100 transition-all active:scale-95'
-                title='Color scheme'
-              >
-                <Palette className='h-4 w-4 text-theme-600' />
-              </button>
-              <button
-                type='button'
-                onClick={() => setPersonSheetOpen(true)}
-                className='flex items-center gap-2 rounded-full bg-theme-100 py-1.5 pl-1.5 pr-3 transition-all duration-200 active:scale-95'
-              >
-                <div className='person-avatar h-7 w-7 text-xs'>
-                  {initials(selectedPerson?.name)}
-                </div>
-                <span className='text-sm font-semibold text-theme-700'>
-                  {selectedPerson?.name?.split(' ')[0] || t('choosePerson')}
-                </span>
-              </button>
-            </div>
-          </div>
+    <div className='mobile-app-shell mx-auto w-full max-w-[430px] pb-[calc(env(safe-area-inset-bottom)+88px)]'>
+      <header className='iphone-top-chrome sticky top-0 z-20'>
+        <div className='mx-4 flex items-center justify-between gap-2 pb-2 pt-[max(env(safe-area-inset-top),0.75rem)]'>
+          <p className='iphone-app-title'>{t('title')}</p>
+          <button
+            type='button'
+            onClick={() => setPersonSheetOpen(true)}
+            className='iphone-person-link'
+          >
+            <p className='iphone-person-subtle truncate'>
+              {selectedPerson?.name || t('choosePerson')}
+            </p>
+          </button>
+        </div>
 
-          {/* Date navigation */}
-          <div className='mt-3 flex items-center gap-2'>
+        <div className='iphone-date-rail mx-4 mb-2'>
+          <button
+            type='button'
+            onClick={() => navigateDay(-1)}
+            title={t('previousDay')}
+            className='iphone-date-nav'
+          >
+            <ChevronLeft className='h-5 w-5' />
+          </button>
+
+          <div className='relative min-w-0 flex-1'>
             <button
               type='button'
-              onClick={() => navigateDay(-1)}
-              title={t('previousDay')}
-              className='moradi-soft-button flex h-10 w-10 shrink-0 items-center justify-center rounded-xl'
+              onClick={openDatePicker}
+              title={t('openCalendar')}
+              className='iphone-date-center'
             >
-              <ChevronLeft className='h-4 w-4 text-slate-600' />
-            </button>
-
-            <div className='relative min-w-0 flex-1'>
-              <button
-                type='button'
-                onClick={openDatePicker}
-                className='w-full rounded-xl bg-white/80 px-3 py-2 text-left shadow-sm transition-all duration-200 active:scale-[0.98]'
-                style={{ border: '1px solid var(--theme-card-border)' }}
-              >
-                <p className='text-[10px] font-semibold uppercase tracking-wider text-theme-400'>
-                  {isToday ? '● ' : ''}{t('date')}
-                </p>
-                <p className='truncate text-sm font-bold text-slate-900'>{formatDateLabel(date)}</p>
-              </button>
-              <Input
-                ref={dateInputRef}
-                type='date'
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className='pointer-events-none absolute inset-0 h-full w-full opacity-0'
-                aria-label={t('pickDate')}
-                tabIndex={-1}
-              />
-              <button
-                type='button'
-                variant='ghost'
-                title={t('openCalendar')}
-                onClick={openDatePicker}
-                className='absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-1 text-theme-400 transition-colors hover:bg-theme-50'
-              >
-                <Calendar className='h-4 w-4' />
-              </button>
-            </div>
-
-            <button
-              type='button'
-              onClick={() => navigateDay(1)}
-              title={t('nextDay')}
-              className='moradi-soft-button flex h-10 w-10 shrink-0 items-center justify-center rounded-xl'
-            >
-              <ChevronRight className='h-4 w-4 text-slate-600' />
+              <span className='truncate'>{formatDateHeading(date)}</span>
             </button>
           </div>
 
-          {/* Progress bar + stats */}
-          <div className='mt-3'>
-            <div className='flex items-center justify-between text-xs'>
-              <span className='font-semibold text-slate-700'>{progressPercent}%</span>
-              <span className='text-slate-400'>{summary.done}/{summary.total}</span>
-            </div>
-            <div className='progress-bar mt-1'>
-              <div
-                className='progress-bar-fill progress-bar-fill-primary'
-                style={{ width: `${progressPercent}%` }}
-              />
-            </div>
-            <div className='mt-2 grid grid-cols-3 gap-2'>
-              <div className='stat-pill stat-pill-good'>
-                <p className='text-[10px] font-semibold uppercase tracking-wider text-theme-600'>{t('completedCount')}</p>
-                <p className='text-xl font-bold text-theme-700'>{summary.done}</p>
-              </div>
-              <div className='stat-pill stat-pill-default'>
-                <p className='text-[10px] font-semibold uppercase tracking-wider text-slate-500'>{t('pendingCount')}</p>
-                <p className='text-xl font-bold text-slate-700'>{summary.open}</p>
-              </div>
-              <div className='stat-pill stat-pill-bad'>
-                <p className='text-[10px] font-semibold uppercase tracking-wider text-slate-500'>{t('overdueCount')}</p>
-                <p className='text-xl font-bold text-slate-700'>{summary.overdue}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {error ? <p className='mx-4 mt-2 rounded-xl border border-slate-200 bg-slate-100 px-3 py-2 text-sm font-medium text-slate-700'>{error}</p> : null}
-
-      {/* ── Tab Bar ────────────────────────────────────── */}
-      <div className='px-4 pt-2'>
-        <div className='tab-bar grid grid-cols-2'>
           <button
             type='button'
-            onClick={() => setActiveTab('chores')}
-            className={cn('tab-bar-item', activeTab === 'chores' ? 'tab-bar-item-active' : 'tab-bar-item-inactive')}
+            onClick={() => navigateDay(1)}
+            title={t('nextDay')}
+            className='iphone-date-nav'
           >
-            <ListChecks className='h-4 w-4' />
-            {t('chores')}
-          </button>
-          <button
-            type='button'
-            onClick={() => setActiveTab('weeks')}
-            className={cn('tab-bar-item', activeTab === 'weeks' ? 'tab-bar-item-active' : 'tab-bar-item-inactive')}
-          >
-            <CalendarDays className='h-4 w-4' />
-            {t('weeks')}
+            <ChevronRight className='h-5 w-5' />
           </button>
         </div>
-      </div>
+      </header>
 
-      {/* ── Content ───────────────────────────────────── */}
+      {error ? <p className='mx-4 mt-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700'>{error}</p> : null}
+
       <div
         className='mt-3 px-4'
         onTouchStart={dateSwipe.onTouchStart}
@@ -468,24 +344,77 @@ export function MobilePage() {
         {activeTab === 'chores' ? (
           <div key={date} className={slideDirection === 'right' ? 'animate-slide-right' : 'animate-slide-left'}>
             {plan.length ? (
-              <div className='space-y-2.5'>
+              <div className='space-y-3'>
                 {summary.total > 0 && summary.done === summary.total ? (
-                  <div className='moradi-glass-strong animate-pop-in mb-4 flex flex-col items-center rounded-2xl border border-slate-200/90 bg-white/90 px-6 py-6 text-center'>
-                    <Sparkles className='mb-2 h-8 w-8 text-theme-500' />
+                  <div className='iphone-success-card animate-pop-in'>
+                    <Sparkles className='mb-2 h-7 w-7 text-theme-500' />
                     <p className='text-lg font-bold text-slate-900'>{t('allDone')}</p>
                     <p className='text-sm text-slate-500'>{t('allDoneHint')}</p>
                   </div>
                 ) : null}
-                {plan.map((item, index) => (
-                  <ChoreCard
-                    key={`${item.chore_id}-${item.work_date}`}
-                    item={item}
-                    index={index}
-                    t={t}
-                    onToggle={() => toggle(item).catch((err) => setError(err.message))}
-                    disabled={false}
-                  />
-                ))}
+
+                {plan.map((item, index) => {
+                  const state = choreState(item);
+                  return (
+                    <article
+                      key={`${item.chore_id}-${item.work_date}`}
+                      className={cn(
+                        'iphone-task-card animate-stagger-in',
+                        `stagger-${Math.min(index + 1, 10)}`,
+                        state === 'done' && 'iphone-task-card-done',
+                        state === 'overdue' && 'iphone-task-card-overdue'
+                      )}
+                    >
+                      <div className='flex items-start gap-3'>
+                        <div className='min-w-0 flex-1'>
+                          <div className='flex items-center gap-2'>
+                            <ListChecks className='h-4 w-4 shrink-0 text-slate-500' />
+                            <p className={cn('truncate text-[1.02rem] font-semibold text-slate-900', state === 'done' && 'text-slate-500 line-through')}>
+                              {item.chore_name}
+                            </p>
+                          </div>
+                          <div className='iphone-task-divider' />
+                          <div className='space-y-1.5'>
+                            <div className='iphone-task-meta-row'>
+                              <UserRound className='h-4 w-4' />
+                              <span>{item.responsible_person?.name || t('unassigned')}</span>
+                            </div>
+                            {item.due_time ? (
+                              <div className='iphone-task-meta-row'>
+                                {state === 'overdue' ? (
+                                  <AlertCircle className='h-4 w-4 shrink-0 text-red-600' />
+                                ) : (
+                                  <CalendarDays className='h-4 w-4 text-slate-500' />
+                                )}
+                                <span className={cn(state === 'overdue' && 'font-medium text-red-600')}>
+                                  {state === 'overdue' ? t('deadlineExpired') : t('deadline')}: {item.due_time}
+                                </span>
+                              </div>
+                            ) : null}
+                            {item.completion?.completed_by_name ? (
+                              <span className='iphone-done-tag'>{t('doneBy', { name: item.completion.completed_by_name })}</span>
+                            ) : null}
+                          </div>
+                        </div>
+
+                        <button
+                          type='button'
+                          onClick={() => toggle(item).catch((err) => setError(err.message))}
+                          className={cn(
+                            'iphone-check-btn',
+                            state === 'done'
+                              ? 'iphone-check-btn-done'
+                              : state === 'overdue'
+                                ? 'iphone-check-btn-overdue'
+                                : 'iphone-check-btn-open'
+                          )}
+                        >
+                          {state === 'done' ? <Check className='h-6 w-6' /> : <span className='iphone-check-empty' aria-hidden='true' />}
+                        </button>
+                      </div>
+                    </article>
+                  );
+                })}
               </div>
             ) : (
               <div className='empty-state animate-fade-in-up py-16'>
@@ -495,32 +424,25 @@ export function MobilePage() {
               </div>
             )}
           </div>
-        ) : (
+        ) : activeTab === 'weeks' ? (
           <div className='animate-fade-in space-y-2.5'>
             {weekOwners.length ? (
               weekOwners.map((row, index) => (
-                <div
-                  key={row.week_start}
-                  className={cn('week-card animate-stagger-in', `stagger-${Math.min(index + 1, 10)}`)}
-                >
-                  <div className='week-number-badge'>
-                    {weekNumberFromDateKey(row.week_start)}
-                  </div>
+                <article key={row.week_start} className={cn('iphone-week-card animate-stagger-in', `stagger-${Math.min(index + 1, 10)}`)}>
+                  <div className='iphone-week-number'>{weekNumberFromDateKey(row.week_start)}</div>
                   <div className='min-w-0 flex-1'>
-                    <p className='text-sm font-bold text-slate-900'>{formatWeekRange(row.week_start, locale)}</p>
-                    <p className='text-xs text-slate-500'>
-                      {t('weekLabel', { number: weekNumberFromDateKey(row.week_start) })} · {t('starts', { date: formatShortDate(row.week_start) })}
-                    </p>
+                    <p className='text-sm font-semibold text-slate-900'>{t('weekLabel', { number: weekNumberFromDateKey(row.week_start) })}</p>
+                    <p className='text-xs text-slate-500'>{formatWeekRange(row.week_start, locale)}</p>
                   </div>
-                  <span className={cn(
-                    'rounded-full px-3 py-1 text-xs font-semibold',
-                    row.person_name
-                      ? 'bg-theme-100 text-theme-700'
-                      : 'bg-slate-100 text-slate-500'
-                  )}>
+                  <span
+                    className={cn(
+                      'iphone-week-owner',
+                      row.person_name ? 'iphone-week-owner-assigned' : 'iphone-week-owner-unassigned'
+                    )}
+                  >
                     {row.person_name || t('unassigned')}
                   </span>
-                </div>
+                </article>
               ))
             ) : (
               <div className='empty-state animate-fade-in-up py-16'>
@@ -529,8 +451,76 @@ export function MobilePage() {
               </div>
             )}
           </div>
+        ) : (
+          <div className='animate-fade-in space-y-3'>
+            <section className='iphone-settings-card'>
+              <p className='text-[11px] font-semibold uppercase tracking-wide text-slate-500'>{t('currentPerson')}</p>
+              <button type='button' className='iphone-setting-row mt-2' onClick={() => setPersonSheetOpen(true)}>
+                <div className='person-avatar h-9 w-9 text-xs'>{initials(selectedPerson?.name)}</div>
+                <div className='min-w-0 flex-1 text-left'>
+                  <p className='truncate text-sm font-semibold text-slate-900'>{selectedPerson?.name || t('choosePerson')}</p>
+                </div>
+                <span className='text-xs font-medium text-theme-600'>{t('changePerson')}</span>
+              </button>
+            </section>
+
+            <section className='iphone-settings-card'>
+              <p className='text-[11px] font-semibold uppercase tracking-wide text-slate-500'>{t('themeChoice')}</p>
+              <div className='iphone-theme-grid mt-2'>
+                {THEMES.map((id) => (
+                  <button
+                    key={id}
+                    type='button'
+                    onClick={() => setTheme(id)}
+                    className={cn('iphone-theme-option', theme === id && 'iphone-theme-option-active')}
+                  >
+                    <div className='iphone-theme-swatches'>
+                      <span style={{ background: THEME_COLORS[id][0] }} />
+                      <span style={{ background: THEME_COLORS[id][1] }} />
+                    </div>
+                    <span>{themeLabel(id)}</span>
+                  </button>
+                ))}
+              </div>
+            </section>
+          </div>
         )}
       </div>
+
+      <nav className='iphone-tabbar fixed bottom-0 left-1/2 z-30 w-full max-w-[430px] -translate-x-1/2'>
+        <div className='iphone-tabbar-inner'>
+          <button
+            type='button'
+            onClick={() => setActiveTab('chores')}
+            className={cn('iphone-tab-btn', activeTab === 'chores' ? 'iphone-tab-btn-active' : 'iphone-tab-btn-inactive')}
+          >
+            <ListChecks className='h-5 w-5' />
+            <span>{t('chores')}</span>
+          </button>
+          <button
+            type='button'
+            onClick={() => setActiveTab('weeks')}
+            className={cn(
+              'iphone-tab-btn border-l border-slate-200',
+              activeTab === 'weeks' ? 'iphone-tab-btn-active' : 'iphone-tab-btn-inactive'
+            )}
+          >
+            <CalendarDays className='h-5 w-5' />
+            <span>{t('weeks')}</span>
+          </button>
+          <button
+            type='button'
+            onClick={() => setActiveTab('settings')}
+            className={cn(
+              'iphone-tab-btn border-l border-slate-200',
+              activeTab === 'settings' ? 'iphone-tab-btn-active' : 'iphone-tab-btn-inactive'
+            )}
+          >
+            <Settings2 className='h-5 w-5' />
+            <span>{t('settings')}</span>
+          </button>
+        </div>
+      </nav>
 
       {/* ── Person Bottom Sheet ────────────────────────── */}
       <BottomSheet
@@ -538,6 +528,7 @@ export function MobilePage() {
         onClose={() => setPersonSheetOpen(false)}
         title={t('choosePerson')}
         description={t('selectFromList')}
+        sheetClassName='mx-auto max-w-[430px]'
       >
         <div className='space-y-2 pt-2'>
           {people.length ? (
@@ -577,6 +568,69 @@ export function MobilePage() {
           ) : (
             <p className='py-4 text-center text-sm text-slate-500'>{t('notSelected')}</p>
           )}
+        </div>
+      </BottomSheet>
+
+      <BottomSheet
+        open={calendarSheetOpen}
+        onClose={() => setCalendarSheetOpen(false)}
+        title={t('pickDate')}
+        sheetClassName='mx-auto max-w-[430px]'
+      >
+        <div className='iphone-calendar'>
+          <div className='iphone-calendar-header'>
+            <button
+              type='button'
+              onClick={() => shiftCalendarMonth(-1)}
+              className='iphone-calendar-nav'
+              title={t('previousMonth')}
+            >
+              <ChevronLeft className='h-5 w-5' />
+            </button>
+            <p className='iphone-calendar-title'>{monthLabel}</p>
+            <button
+              type='button'
+              onClick={() => shiftCalendarMonth(1)}
+              className='iphone-calendar-nav'
+              title={t('nextMonth')}
+            >
+              <ChevronRight className='h-5 w-5' />
+            </button>
+          </div>
+
+          <div className='iphone-calendar-weekdays'>
+            {weekdayLabels.map((label) => (
+              <span key={label}>{label}</span>
+            ))}
+          </div>
+
+          <div className='iphone-calendar-grid'>
+            {calendarCells.map((cell, index) => {
+              if (!cell) {
+                return <span key={`empty-${index}`} className='iphone-calendar-empty' />;
+              }
+              const key = toDateKey(cell);
+              const selected = key === date;
+              const today = key === todayKey();
+              return (
+                <button
+                  key={key}
+                  type='button'
+                  onClick={() => {
+                    setDate(key);
+                    setCalendarSheetOpen(false);
+                  }}
+                  className={cn(
+                    'iphone-calendar-day',
+                    selected && 'iphone-calendar-day-selected',
+                    today && !selected && 'iphone-calendar-day-today'
+                  )}
+                >
+                  {cell.getDate()}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </BottomSheet>
     </div>

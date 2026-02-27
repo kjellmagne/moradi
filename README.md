@@ -141,3 +141,17 @@ From repository root:
 - `npm run check` - Node syntax checks for backend files
 - `npm run build:web` - build frontend into `public/app`
 - `npm start` - build frontend and run server
+
+## Docker
+
+Build image:
+
+```bash
+docker build -t moradi:latest .
+```
+
+Run container:
+
+```bash
+docker run --name moradi -p 3000:3000 -v moradi-data:/app/data moradi:latest
+```
