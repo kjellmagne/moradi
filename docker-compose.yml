@@ -1,0 +1,15 @@
+services:
+  moradi:
+    image: ghcr.io/kjellmagne/moradi:latest
+    container_name: moradi
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+    volumes:
+      - moradi-data:/app/data
+
+volumes:
+  moradi-data:

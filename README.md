@@ -155,3 +155,17 @@ Run container:
 ```bash
 docker run --name moradi -p 3000:3000 -v moradi-data:/app/data moradi:latest
 ```
+
+`/app/data` contains `chores.db`. Mounting this path keeps data persistent across restarts/redeploys.
+
+Run with Compose (persistent named volume):
+
+```bash
+docker compose up -d
+```
+
+Optional host bind mount (data visible on host filesystem):
+
+```bash
+docker run --name moradi -p 3000:3000 -v "$(pwd)/data:/app/data" moradi:latest
+```
