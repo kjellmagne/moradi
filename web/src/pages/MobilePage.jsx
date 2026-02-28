@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useParams } from 'react-router-dom';
 import { AlertCircle, CalendarDays, Check, ChevronLeft, ChevronRight, ListChecks, Settings2, Sparkles, UserRound } from 'lucide-react';
 import {
   addDays,
@@ -125,6 +126,7 @@ function initials(name) {
 }
 
 export function MobilePage() {
+  const { accessKey = '' } = useParams();
   const { theme, setTheme } = useTheme();
   const [language, setLanguage] = useState('en');
   const [people, setPeople] = useState([]);
@@ -189,7 +191,9 @@ export function MobilePage() {
   }, [calendarMonth]);
 
   async function loadAll() {
-    const [settings, peopleRows] = await Promise.all([api.getSettings(), api.getPeople()]);
+    const bootstrap = await api.getMobileBootstrap(accessKey);
+    const settings = bootstrap?.settings || {};
+    const peopleRows = Array.isArray(bootstrap?.people) ? bootstrap.people : [];
     const normalized = normalizeLanguage(settings.language);
     setLanguage(normalized);
     setPeople(peopleRows);
@@ -200,21 +204,31 @@ export function MobilePage() {
     setPersonId(nextPerson);
 
     const weekStart = startOfWeek(date);
-    const [planRows, ownerRows] = await Promise.all([api.getPlan(date), api.getWeekOwners(weekStart, 8)]);
+    const [planRows, ownerRows] = await Promise.all([
+      api.getMobilePlan(date, accessKey),
+      api.getMobileWeekOwners(weekStart, 8, accessKey)
+    ]);
     setPlan(planRows);
     setWeekOwners(ownerRows);
   }
 
   async function reloadDate(nextDate) {
     const weekStart = startOfWeek(nextDate);
-    const [planRows, ownerRows] = await Promise.all([api.getPlan(nextDate), api.getWeekOwners(weekStart, 8)]);
+    const [planRows, ownerRows] = await Promise.all([
+      api.getMobilePlan(nextDate, accessKey),
+      api.getMobileWeekOwners(weekStart, 8, accessKey)
+    ]);
     setPlan(planRows);
     setWeekOwners(ownerRows);
   }
 
   useEffect(() => {
+    if (!String(accessKey || '').trim()) {
+      setError('Mobile access key missing');
+      return;
+    }
     loadAll().catch((err) => setError(err.message));
-  }, []);
+  }, [accessKey]);
 
   useEffect(() => {
     if (!people.length || !personId) return;
@@ -222,8 +236,11 @@ export function MobilePage() {
   }, [personId, people.length]);
 
   useEffect(() => {
+    if (!String(accessKey || '').trim()) {
+      return;
+    }
     reloadDate(date).catch((err) => setError(err.message));
-  }, [date]);
+  }, [date, accessKey]);
 
   async function toggle(item) {
     setError('');
@@ -235,12 +252,15 @@ export function MobilePage() {
     }
 
     if (item.completion) {
-      await api.unmarkDone({ chore_id: item.chore_id, work_date: date });
+      await api.unmarkMobileDone({ chore_id: item.chore_id, work_date: date }, accessKey);
     } else {
-      await api.markDone({ chore_id: item.chore_id, work_date: date, completed_by: Number(checker) });
+      await api.markMobileDone(
+        { chore_id: item.chore_id, work_date: date, completed_by: Number(checker) },
+        accessKey
+      );
     }
 
-    const rows = await api.getPlan(date);
+    const rows = await api.getMobilePlan(date, accessKey);
     setPlan(rows);
   }
 

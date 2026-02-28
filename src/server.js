@@ -59,6 +59,32 @@ function isMobileAccessKeyValid(accessKey) {
   return Boolean(expected && provided === expected);
 }
 
+function mobileAccessKeyFromRequest(req) {
+  const headerValue = req.get('x-mobile-access-key');
+  if (headerValue && String(headerValue).trim()) {
+    return String(headerValue).trim();
+  }
+
+  if (req.query?.key && String(req.query.key).trim()) {
+    return String(req.query.key).trim();
+  }
+
+  if (req.body?.access_key && String(req.body.access_key).trim()) {
+    return String(req.body.access_key).trim();
+  }
+
+  return '';
+}
+
+function requireMobileApiAccess(req, res) {
+  const accessKey = mobileAccessKeyFromRequest(req);
+  if (!isMobileAccessKeyValid(accessKey)) {
+    res.status(403).json({ error: 'mobile access denied' });
+    return false;
+  }
+  return true;
+}
+
 function serveMobileWithKey(req, res) {
   const key = String(req.params.accessKey || req.query.key || '').trim();
   if (!isMobileAccessKeyValid(key)) {
@@ -204,6 +230,106 @@ function asNullableInt(value, name) {
 app.get('/api/settings', (req, res, next) => {
   try {
     res.json(getSettings());
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get('/api/public/bootstrap', (req, res, next) => {
+  try {
+    if (!requireMobileApiAccess(req, res)) {
+      return;
+    }
+
+    const settings = getSettings();
+    const people = listPeople()
+      .filter((person) => Number(person.active) === 1)
+      .map((person) => ({
+        id: person.id,
+        name: person.name
+      }));
+
+    res.json({
+      settings: {
+        language: settings.language
+      },
+      people
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get('/api/public/week-owners', (req, res, next) => {
+  try {
+    if (!requireMobileApiAccess(req, res)) {
+      return;
+    }
+
+    const start = req.query.start ? asDateKey(req.query.start) : startOfWeekKey(toDateKey());
+    const weeks = req.query.weeks ? asInt(req.query.weeks, 'weeks') : 8;
+    res.json(getWeekOwnerView({ start_week: start, weeks }));
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get('/api/public/plan', (req, res, next) => {
+  try {
+    if (!requireMobileApiAccess(req, res)) {
+      return;
+    }
+
+    const dateKey = asDateKey(req.query.date);
+    const includeDisabled = req.query.include_disabled
+      ? asBoolInt(req.query.include_disabled, 'include_disabled')
+      : 0;
+    const includePrestart = req.query.include_prestart
+      ? asBoolInt(req.query.include_prestart, 'include_prestart')
+      : 0;
+    res.json(
+      getDailyPlan(dateKey, {
+        includeDisabled: includeDisabled === 1,
+        includeBeforeStart: includePrestart === 1
+      })
+    );
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post('/api/public/completions', (req, res, next) => {
+  try {
+    if (!requireMobileApiAccess(req, res)) {
+      return;
+    }
+
+    const payload = {
+      chore_id: asInt(req.body.chore_id, 'chore_id'),
+      work_date: asDateKey(req.body.work_date),
+      completed_by: asInt(req.body.completed_by, 'completed_by')
+    };
+
+    const completion = markCompletion(payload);
+    res.status(201).json(completion);
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.delete('/api/public/completions', (req, res, next) => {
+  try {
+    if (!requireMobileApiAccess(req, res)) {
+      return;
+    }
+
+    const payload = {
+      chore_id: asInt(req.body.chore_id, 'chore_id'),
+      work_date: asDateKey(req.body.work_date)
+    };
+
+    unmarkCompletion(payload);
+    res.status(204).send();
   } catch (error) {
     next(error);
   }

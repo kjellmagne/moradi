@@ -21,8 +21,22 @@ export async function request(url, options = {}) {
   return data;
 }
 
+function withMobileAccessKey(key, options = {}) {
+  const accessKey = String(key || '').trim();
+  return {
+    ...options,
+    headers: {
+      ...(options.headers || {}),
+      ...(accessKey ? { 'X-Mobile-Access-Key': accessKey } : {})
+    }
+  };
+}
+
 export const api = {
   getBootstrap: () => request('/api/bootstrap'),
+  getPublicBootstrap: () => request('/api/public/bootstrap'),
+  getMobileBootstrap: (accessKey) =>
+    request('/api/public/bootstrap', withMobileAccessKey(accessKey)),
   getPeople: () => request('/api/people'),
   createPerson: (payload) => request('/api/people', { method: 'POST', body: JSON.stringify(payload) }),
   updatePerson: (id, payload) => request(`/api/people/${id}`, { method: 'PATCH', body: JSON.stringify(payload) }),
@@ -35,6 +49,11 @@ export const api = {
 
   getWeekOwners: (start, weeks = 8) =>
     request(`/api/week-owners?start=${encodeURIComponent(start)}&weeks=${encodeURIComponent(weeks)}`),
+  getMobileWeekOwners: (start, weeks = 8, accessKey) =>
+    request(
+      `/api/public/week-owners?start=${encodeURIComponent(start)}&weeks=${encodeURIComponent(weeks)}`,
+      withMobileAccessKey(accessKey)
+    ),
   setWeekOwner: (payload) => request('/api/week-owners', { method: 'POST', body: JSON.stringify(payload) }),
   deleteWeekOwner: (payload) => request('/api/week-owners', { method: 'DELETE', body: JSON.stringify(payload) }),
 
@@ -44,13 +63,30 @@ export const api = {
         options.includeBeforeStart ? '&include_prestart=1' : ''
       }`
     ),
+  getMobilePlan: (date, accessKey, options = {}) =>
+    request(
+      `/api/public/plan?date=${date}${options.includeDisabled ? '&include_disabled=1' : ''}${
+        options.includeBeforeStart ? '&include_prestart=1' : ''
+      }`,
+      withMobileAccessKey(accessKey)
+    ),
   getMyPlan: (date, personId) => request(`/api/my-plan?date=${date}&person_id=${personId}`),
 
   setInstanceOverride: (payload) => request('/api/instance-overrides', { method: 'POST', body: JSON.stringify(payload) }),
   deleteInstanceOverride: (payload) => request('/api/instance-overrides', { method: 'DELETE', body: JSON.stringify(payload) }),
 
   markDone: (payload) => request('/api/completions', { method: 'POST', body: JSON.stringify(payload) }),
+  markMobileDone: (payload, accessKey) =>
+    request(
+      '/api/public/completions',
+      withMobileAccessKey(accessKey, { method: 'POST', body: JSON.stringify(payload) })
+    ),
   unmarkDone: (payload) => request('/api/completions', { method: 'DELETE', body: JSON.stringify(payload) }),
+  unmarkMobileDone: (payload, accessKey) =>
+    request(
+      '/api/public/completions',
+      withMobileAccessKey(accessKey, { method: 'DELETE', body: JSON.stringify(payload) })
+    ),
 
   getAlerts: (limit = 30) => request(`/api/alerts?limit=${limit}`),
   getSummary: (date) => request(`/api/summary?date=${date}`),
