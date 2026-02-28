@@ -1,5 +1,6 @@
 import Database from 'better-sqlite3';
 import fs from 'node:fs';
+import { randomBytes } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -23,6 +24,7 @@ const DEFAULT_SETTINGS = Object.freeze({
   deadline_alerts_enabled: 1,
   deadline_alert_delivery: 'both',
   weekly_owner_alert_enabled: 1,
+  mobile_access_key: '',
   alert_webhook_url: '',
   sms_gateway_url: '',
   sms_gateway_username: '',
@@ -242,6 +244,7 @@ export function initDb() {
 
   ensureSchemaMigrations();
   seedDefaultSettingsIfNeeded();
+  ensureMobileAccessKey();
   seedIfNeeded();
 }
 
@@ -310,6 +313,29 @@ function normalizeString(value) {
   return String(value || '').trim();
 }
 
+function generateMobileAccessKey() {
+  return randomBytes(16).toString('hex');
+}
+
+function ensureMobileAccessKey() {
+  const row = db
+    .prepare("SELECT value FROM app_settings WHERE key = 'mobile_access_key'")
+    .get();
+  const existing = normalizeString(row?.value);
+  if (existing) {
+    return existing;
+  }
+
+  const next = generateMobileAccessKey();
+  db.prepare(
+    `INSERT INTO app_settings (key, value)
+     VALUES ('mobile_access_key', ?)
+     ON CONFLICT(key)
+     DO UPDATE SET value = excluded.value`
+  ).run(next);
+  return next;
+}
+
 function rawSettingsMap() {
   const rows = db.prepare('SELECT key, value FROM app_settings').all();
   return new Map(rows.map((row) => [row.key, row.value]));
@@ -330,6 +356,7 @@ function settingsFromMap(map) {
       map.get('weekly_owner_alert_enabled'),
       DEFAULT_SETTINGS.weekly_owner_alert_enabled
     ),
+    mobile_access_key: normalizeString(map.get('mobile_access_key') || DEFAULT_SETTINGS.mobile_access_key),
     alert_webhook_url: normalizeString(map.get('alert_webhook_url') || DEFAULT_SETTINGS.alert_webhook_url),
     sms_gateway_url: normalizeString(map.get('sms_gateway_url') || DEFAULT_SETTINGS.sms_gateway_url),
     sms_gateway_username: normalizeString(
@@ -371,6 +398,9 @@ export function updateSettings(patch = {}) {
     weekly_owner_alert_enabled: Object.prototype.hasOwnProperty.call(patch, 'weekly_owner_alert_enabled')
       ? normalizeBoolInt(patch.weekly_owner_alert_enabled, current.weekly_owner_alert_enabled)
       : current.weekly_owner_alert_enabled,
+    mobile_access_key: Object.prototype.hasOwnProperty.call(patch, 'mobile_access_key')
+      ? normalizeString(patch.mobile_access_key) || current.mobile_access_key
+      : current.mobile_access_key,
     alert_webhook_url: Object.prototype.hasOwnProperty.call(patch, 'alert_webhook_url')
       ? normalizeString(patch.alert_webhook_url)
       : current.alert_webhook_url,
@@ -429,6 +459,18 @@ function seedDefaultSettingsIfNeeded() {
     return;
   }
   updateSettings(DEFAULT_SETTINGS);
+}
+
+export function regenerateMobileAccessKey() {
+  const next = generateMobileAccessKey();
+  db.prepare(
+    `INSERT INTO app_settings (key, value)
+     VALUES ('mobile_access_key', ?)
+     ON CONFLICT(key)
+     DO UPDATE SET value = excluded.value`
+  ).run(next);
+
+  return getSettings();
 }
 
 export function getWeekOwnerForWeekStart(week_start) {

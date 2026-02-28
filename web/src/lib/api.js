@@ -64,6 +64,7 @@ export const api = {
   },
   getSettings: () => request('/api/settings'),
   updateSettings: (payload) => request('/api/settings', { method: 'PUT', body: JSON.stringify(payload) }),
+  regenerateMobileAccessKey: () => request('/api/settings/regenerate-mobile-access-key', { method: 'POST' }),
   testSettingsEmail: (payload) =>
     request('/api/settings/test-email', { method: 'POST', body: JSON.stringify(payload) }),
   testSettingsSms: (payload) =>

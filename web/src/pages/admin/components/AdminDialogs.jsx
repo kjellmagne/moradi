@@ -81,6 +81,8 @@ export function AdminDialogs({
   language,
   setLanguage,
   submitSettings,
+  regenerateMobileAccessKey,
+  mobileLaunchHref,
   testSettingsEmail,
   testSettingsSms,
   formatDay
@@ -90,7 +92,12 @@ export function AdminDialogs({
   const [testSmsMessage, setTestSmsMessage] = useState('');
   const [testingEmail, setTestingEmail] = useState(false);
   const [testingSms, setTestingSms] = useState(false);
+  const [regeneratingMobileKey, setRegeneratingMobileKey] = useState(false);
   const [testFeedback, setTestFeedback] = useState({ tone: '', message: '' });
+  const fullMobileLaunchUrl =
+    typeof window !== 'undefined'
+      ? `${window.location.origin}${mobileLaunchHref || '/employee/mobile'}`
+      : mobileLaunchHref || '/employee/mobile';
 
   useEffect(() => {
     if (!settingsOpen) {
@@ -141,6 +148,22 @@ export function AdminDialogs({
       setTestFeedback({ tone: 'error', message: `${t('testFailed')}: ${error.message}` });
     } finally {
       setTestingSms(false);
+    }
+  }
+
+  async function runRegenerateMobileKey() {
+    if (!regenerateMobileAccessKey) {
+      return;
+    }
+    try {
+      setRegeneratingMobileKey(true);
+      setTestFeedback({ tone: '', message: '' });
+      await regenerateMobileAccessKey();
+      setTestFeedback({ tone: 'ok', message: t('testSuccess') });
+    } catch (error) {
+      setTestFeedback({ tone: 'error', message: `${t('testFailed')}: ${error.message}` });
+    } finally {
+      setRegeneratingMobileKey(false);
     }
   }
 
@@ -562,6 +585,33 @@ export function AdminDialogs({
                 </div>
               </div>
               <ColorSchemePicker t={t} />
+
+              <div className='grid gap-3 rounded-2xl border p-3'>
+                <h4 className='text-sm font-semibold text-slate-800'>{t('mobileAccessKey')}</h4>
+                <div className='grid gap-3 md:grid-cols-2'>
+                  <Field
+                    label={t('mobileAccessKey')}
+                    value={settingsForm.mobile_access_key || ''}
+                    onChange={() => {}}
+                    InputComponent={(props) => <Input {...props} readOnly />}
+                  />
+                  <div className='grid gap-1.5'>
+                    <Label className='text-sm font-semibold text-slate-700'>{t('mobileAccessUrl')}</Label>
+                    <Input value={fullMobileLaunchUrl} readOnly />
+                  </div>
+                </div>
+                <div className='flex'>
+                  <Button
+                    type='button'
+                    variant='outline'
+                    className='w-full sm:ml-auto sm:w-auto sm:min-w-[180px]'
+                    onClick={() => runRegenerateMobileKey().catch(() => {})}
+                    disabled={regeneratingMobileKey}
+                  >
+                    {regeneratingMobileKey ? t('sending') : t('regenerateAccessKey')}
+                  </Button>
+                </div>
+              </div>
 
               <div className='grid gap-4 xl:grid-cols-2'>
                 <div className='grid gap-3 rounded-2xl border p-3'>

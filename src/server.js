@@ -20,6 +20,7 @@ import {
   deleteChoreInstanceOverride,
   getSettings,
   updateSettings,
+  regenerateMobileAccessKey,
   getDailyPlan,
   markCompletion,
   unmarkCompletion,
@@ -49,6 +50,23 @@ function serveApp(req, res) {
   res.sendFile(appIndexPath);
 }
 
+function isMobileAccessKeyValid(accessKey) {
+  const provided = String(accessKey || '').trim();
+  if (!provided) {
+    return false;
+  }
+  const expected = String(getSettings().mobile_access_key || '').trim();
+  return Boolean(expected && provided === expected);
+}
+
+function serveMobileWithKey(req, res) {
+  const key = String(req.params.accessKey || req.query.key || '').trim();
+  if (!isMobileAccessKeyValid(key)) {
+    return res.status(403).send('Mobile access denied');
+  }
+  return serveApp(req, res);
+}
+
 app.get('/', (req, res) => {
   res.redirect('/admin/overview');
 });
@@ -75,9 +93,17 @@ app.get('/admin/:section', (req, res, next) => {
   return serveApp(req, res);
 });
 app.get('/employee/ipad', serveApp);
-app.get('/employee/mobile', serveApp);
+app.get('/employee/mobile/:accessKey', serveMobileWithKey);
+app.get('/employee/mobile', (req, res) => {
+  res.status(403).send('Mobile access key required');
+});
 app.get('/ipad', (req, res) => res.redirect('/employee/ipad'));
-app.get('/mobile', (req, res) => res.redirect('/employee/mobile'));
+app.get('/mobile/:accessKey', (req, res) =>
+  res.redirect(`/employee/mobile/${encodeURIComponent(String(req.params.accessKey || '').trim())}`)
+);
+app.get('/mobile', (req, res) => {
+  res.status(403).send('Mobile access key required');
+});
 
 app.use(express.static(publicDir));
 
@@ -186,6 +212,15 @@ app.get('/api/settings', (req, res, next) => {
 app.put('/api/settings', (req, res, next) => {
   try {
     const settings = updateSettings(req.body || {});
+    res.json(settings);
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post('/api/settings/regenerate-mobile-access-key', (req, res, next) => {
+  try {
+    const settings = regenerateMobileAccessKey();
     res.json(settings);
   } catch (error) {
     next(error);

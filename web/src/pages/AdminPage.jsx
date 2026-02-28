@@ -190,6 +190,9 @@ const TEXT = {
     smtpPass: 'SMTP pass (optional)',
     smtpFrom: 'SMTP from',
     smtpSecure: 'SMTP secure',
+    mobileAccessKey: 'Mobile access key',
+    mobileAccessUrl: 'Mobile URL',
+    regenerateAccessKey: 'Regenerate key',
     testEmailTo: 'Test email to',
     testSmsTo: 'Test SMS to',
     testSmsMessage: 'Test SMS message',
@@ -359,6 +362,9 @@ const TEXT = {
     smtpPass: 'SMTP passord (valgfritt)',
     smtpFrom: 'SMTP fra',
     smtpSecure: 'SMTP sikker',
+    mobileAccessKey: 'Mobil tilgangsnokkel',
+    mobileAccessUrl: 'Mobil URL',
+    regenerateAccessKey: 'Generer ny nokkel',
     testEmailTo: 'Test e-post til',
     testSmsTo: 'Test SMS til',
     testSmsMessage: 'Test SMS-melding',
@@ -863,6 +869,12 @@ export function AdminPage() {
     return result;
   }
 
+  async function regenerateMobileKey() {
+    const next = await api.regenerateMobileAccessKey();
+    setSettings(next);
+    setSettingsForm({ ...next });
+  }
+
   function openSettings() {
     if (!settings) return;
     setSettingsForm({ ...settings });
@@ -885,6 +897,10 @@ export function AdminPage() {
     );
   }
 
+  const mobileLaunchHref = settings?.mobile_access_key
+    ? `/employee/mobile/${encodeURIComponent(String(settings.mobile_access_key))}`
+    : '/employee/mobile';
+
   return (
     <AdminLayout
       navItems={navItems}
@@ -895,6 +911,7 @@ export function AdminPage() {
       pageTitle={pageTitle}
       pageSubtitle={pageSubtitle}
       error={error}
+      mobileLaunchHref={mobileLaunchHref}
     >
       {section === 'overview' ? (
         <OverviewSection
@@ -1053,6 +1070,8 @@ export function AdminPage() {
         language={language}
         setLanguage={(value) => setLanguage(normalizeLanguage(value))}
         submitSettings={submitSettings}
+        regenerateMobileAccessKey={regenerateMobileKey}
+        mobileLaunchHref={mobileLaunchHref}
         testSettingsEmail={testSettingsEmail}
         testSettingsSms={testSettingsSms}
         formatDay={formatDay}

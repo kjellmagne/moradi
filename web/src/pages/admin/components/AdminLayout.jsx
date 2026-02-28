@@ -1,7 +1,18 @@
 import { Button } from '@/components/ui/button';
 import { Settings, Smartphone, Tablet } from 'lucide-react';
 
-export function AdminLayout({ navItems, section, navigate, t, openSettings, pageTitle, pageSubtitle, error, children }) {
+export function AdminLayout({
+  navItems,
+  section,
+  navigate,
+  t,
+  openSettings,
+  pageTitle,
+  pageSubtitle,
+  error,
+  mobileLaunchHref = '/employee/mobile',
+  children
+}) {
   return (
     <div className='moradi-admin-shell grid min-h-dvh grid-cols-[260px_minmax(0,1fr)]'>
       <aside className='moradi-sidebar flex flex-col px-4 py-5'>
@@ -47,7 +58,7 @@ export function AdminLayout({ navItems, section, navigate, t, openSettings, page
               <Tablet className='h-4 w-4' />
             </a>
             <a
-              href='/employee/mobile'
+              href={mobileLaunchHref}
               className='flex h-9 w-9 items-center justify-center rounded-lg border border-white/20 bg-white/8 text-theme-200 transition-all duration-200 hover:bg-white/15 hover:text-white'
               title={t('launchIphone')}
             >

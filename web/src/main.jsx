@@ -13,7 +13,7 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path='/admin/:section' element={<AdminPage />} />
-          <Route path='/employee/mobile' element={<MobilePage />} />
+          <Route path='/employee/mobile/:accessKey' element={<MobilePage />} />
           <Route path='/employee/ipad' element={<IpadPage />} />
           <Route path='*' element={<Navigate to='/admin/overview' replace />} />
         </Routes>
