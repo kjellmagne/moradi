@@ -9,6 +9,8 @@ Moradi is an office chore follow-up app with an admin planning interface and ded
 - supports per-day/per-instance overrides (rename, description, deadline, assignee, disable)
 - tracks daily completion with `completed_by` and timestamp
 - sends deadline-missed alerts and weekly owner reminders
+- supports per-chore deadline channel selection (`SMS`, `email`, or both)
+- protects mobile access using a regeneratable access key
 - shows performance statistics and leaderboard data
 - supports Norwegian and English UI language
 
@@ -25,7 +27,7 @@ Administration (desktop/browser):
 
 Employee views:
 
-- `/employee/mobile` (day-based checkoff + upcoming weeks tab)
+- `/employee/mobile/:accessKey` (day-based checkoff + upcoming weeks tab)
 - `/employee/ipad` (week board, Monday-Friday)
 
 Convenience redirects:
@@ -34,7 +36,7 @@ Convenience redirects:
 - `/admin` -> `/admin/overview`
 - `/dashboard` -> `/admin/overview`
 - `/ipad` -> `/employee/ipad`
-- `/mobile` -> `/employee/mobile`
+- `/mobile/:accessKey` -> `/employee/mobile/:accessKey`
 
 ## Tech stack
 
@@ -109,6 +111,8 @@ Deadline alerts:
 - scheduler runs every minute
 - creates alert only if chore is overdue and alerting is enabled
 - deduplicated by `(chore_id, work_date, alert_type)`
+- alert is sent once per chore instance after deadline is missed
+- delivery channel for deadline alerts is configured per chore (`sms`, `email`, or both)
 
 Weekly owner reminders:
 
@@ -130,6 +134,23 @@ SMS gateway format used by Moradi:
 - default `message-type` is `sms.automatic`
 
 In Admin settings you can send test email and test SMS with current (unsaved) configuration.
+
+## Mobile access security (low security)
+
+- `mobile_access_key` is stored in `app_settings` and generated automatically if missing.
+- The key can be regenerated in Admin settings. Regeneration invalidates old mobile links.
+- Mobile page route requires key in URL: `/employee/mobile/:accessKey`.
+- Mobile public APIs also require the key (header `X-Mobile-Access-Key`):
+- `GET /api/public/bootstrap`
+- `GET /api/public/plan`
+- `GET /api/public/week-owners`
+- `POST /api/public/completions`
+- `DELETE /api/public/completions`
+
+Recommended when exposing mobile externally:
+
+- allow only `/employee/mobile/:accessKey`, `/app/*`, and `/api/public/*`
+- block `/api/settings*`, `/api/people*`, `/api/chores*`, `/admin*`, `/employee/ipad*`
 
 ## Core data tables
 
@@ -170,6 +191,12 @@ Run with Compose (persistent host path `/opt/apps/moradi/data`):
 
 ```bash
 docker compose up -d
+```
+
+Custom external port example (`3011 -> 3000`):
+
+```bash
+docker run --name moradi -p 3011:3000 -e DATA_DIR=/app/data -v /opt/apps/moradi/data:/app/data moradi:latest
 ```
 
 Optional host bind mount (data visible on host filesystem):
