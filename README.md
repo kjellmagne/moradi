@@ -161,10 +161,10 @@ docker build -t moradi:latest .
 Run container:
 
 ```bash
-docker run --name moradi -p 3000:3000 -v /opt/apps/moradi/data:/app/data moradi:latest
+docker run --name moradi -p 3000:3000 -e DATA_DIR=/app/data -v /opt/apps/moradi/data:/app/data moradi:latest
 ```
 
-`/app/data` contains `chores.db`. Mounting this path keeps data persistent across restarts/redeploys.
+`/app/data` contains `chores.db` (including settings in `app_settings`). Mounting this path keeps data persistent across restarts/redeploys.
 
 Run with Compose (persistent host path `/opt/apps/moradi/data`):
 

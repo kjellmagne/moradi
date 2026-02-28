@@ -525,7 +525,7 @@ export function AdminDialogs({
       </Dialog>
 
       <Dialog open={settingsOpen} onOpenChange={(open) => (open ? setSettingsOpen(true) : closeSettings())}>
-        <DialogContent className='max-w-2xl'>
+        <DialogContent className='max-h-[88vh] max-w-4xl overflow-y-auto'>
           <DialogHeader>
             <DialogTitle>{t('settings')}</DialogTitle>
             <DialogDescription>{t('sectionScheduleSubtitle')}</DialogDescription>
@@ -563,75 +563,83 @@ export function AdminDialogs({
               </div>
               <ColorSchemePicker t={t} />
 
-              <div className='grid gap-3 rounded-2xl border p-3'>
-                <h4 className='text-sm font-semibold text-slate-800'>{t('alertSettings')}</h4>
-                <div className='grid gap-2'>
-                  <div className='flex items-center justify-between'>
-                    <Label className='text-sm font-semibold text-slate-700'>{t('deadlineAlertsEnabled')}</Label>
-                    <Switch
-                      checked={Boolean(settingsForm.deadline_alerts_enabled)}
-                      onCheckedChange={(checked) =>
-                        setSettingsForm((prev) => ({ ...prev, deadline_alerts_enabled: checked ? 1 : 0 }))
-                      }
-                    />
+              <div className='grid gap-4 xl:grid-cols-2'>
+                <div className='grid gap-3 rounded-2xl border p-3'>
+                  <h4 className='text-sm font-semibold text-slate-800'>{t('alertSettings')}</h4>
+                  <div className='grid gap-2'>
+                    <div className='flex items-center justify-between'>
+                      <Label className='text-sm font-semibold text-slate-700'>{t('deadlineAlertsEnabled')}</Label>
+                      <Switch
+                        checked={Boolean(settingsForm.deadline_alerts_enabled)}
+                        onCheckedChange={(checked) =>
+                          setSettingsForm((prev) => ({ ...prev, deadline_alerts_enabled: checked ? 1 : 0 }))
+                        }
+                      />
+                    </div>
+                    <div className='flex items-center justify-between'>
+                      <Label className='text-sm font-semibold text-slate-700'>{t('weekOwnerReminder')}</Label>
+                      <Switch
+                        checked={Boolean(settingsForm.weekly_owner_alert_enabled)}
+                        onCheckedChange={(checked) =>
+                          setSettingsForm((prev) => ({ ...prev, weekly_owner_alert_enabled: checked ? 1 : 0 }))
+                        }
+                      />
+                    </div>
                   </div>
-                  <div className='flex items-center justify-between'>
-                    <Label className='text-sm font-semibold text-slate-700'>{t('weekOwnerReminder')}</Label>
-                    <Switch
-                      checked={Boolean(settingsForm.weekly_owner_alert_enabled)}
-                      onCheckedChange={(checked) =>
-                        setSettingsForm((prev) => ({ ...prev, weekly_owner_alert_enabled: checked ? 1 : 0 }))
-                      }
-                    />
-                  </div>
+                  <Field
+                    label={t('alertWebhookUrl')}
+                    value={settingsForm.alert_webhook_url || ''}
+                    onChange={(value) => setSettingsForm((prev) => ({ ...prev, alert_webhook_url: value }))}
+                    InputComponent={Input}
+                  />
                 </div>
-                <Field
-                  label={t('alertWebhookUrl')}
-                  value={settingsForm.alert_webhook_url || ''}
-                  onChange={(value) => setSettingsForm((prev) => ({ ...prev, alert_webhook_url: value }))}
-                  InputComponent={Input}
-                />
-              </div>
 
-              <div className='grid gap-3 rounded-2xl border p-3'>
-                <h4 className='text-sm font-semibold text-slate-800'>{t('smsSettings')}</h4>
-                <div className='grid gap-3 md:grid-cols-2'>
+                <div className='grid gap-3 rounded-2xl border p-3'>
+                  <h4 className='text-sm font-semibold text-slate-800'>{t('smsSettings')}</h4>
+                  <div className='grid gap-3 md:grid-cols-2'>
+                    <Field
+                      label={t('smsApiGatewayUrl')}
+                      value={settingsForm.sms_gateway_url || ''}
+                      onChange={(value) => setSettingsForm((prev) => ({ ...prev, sms_gateway_url: value }))}
+                      InputComponent={Input}
+                    />
+                    <Field
+                      label={t('smsMessageType')}
+                      value={settingsForm.sms_gateway_message_type || 'sms.automatic'}
+                      onChange={(value) => setSettingsForm((prev) => ({ ...prev, sms_gateway_message_type: value }))}
+                      InputComponent={Input}
+                    />
+                    <Field
+                      label={t('smsApiUsername')}
+                      value={settingsForm.sms_gateway_username || ''}
+                      onChange={(value) => setSettingsForm((prev) => ({ ...prev, sms_gateway_username: value }))}
+                      InputComponent={Input}
+                    />
+                    <Field
+                      label={t('smsApiPassword')}
+                      type='password'
+                      value={settingsForm.sms_gateway_password || ''}
+                      onChange={(value) => setSettingsForm((prev) => ({ ...prev, sms_gateway_password: value }))}
+                      InputComponent={Input}
+                    />
+                    <Field
+                      label={t('testSmsTo')}
+                      value={testSmsTo}
+                      onChange={setTestSmsTo}
+                      InputComponent={Input}
+                    />
+                  </div>
                   <Field
-                    label={t('smsApiGatewayUrl')}
-                    value={settingsForm.sms_gateway_url || ''}
-                    onChange={(value) => setSettingsForm((prev) => ({ ...prev, sms_gateway_url: value }))}
-                    InputComponent={Input}
+                    label={t('testSmsMessage')}
+                    value={testSmsMessage}
+                    onChange={setTestSmsMessage}
+                    InputComponent={Textarea}
                   />
-                  <Field
-                    label={t('smsMessageType')}
-                    value={settingsForm.sms_gateway_message_type || 'sms.automatic'}
-                    onChange={(value) => setSettingsForm((prev) => ({ ...prev, sms_gateway_message_type: value }))}
-                    InputComponent={Input}
-                  />
-                  <Field
-                    label={t('smsApiUsername')}
-                    value={settingsForm.sms_gateway_username || ''}
-                    onChange={(value) => setSettingsForm((prev) => ({ ...prev, sms_gateway_username: value }))}
-                    InputComponent={Input}
-                  />
-                  <Field
-                    label={t('smsApiPassword')}
-                    type='password'
-                    value={settingsForm.sms_gateway_password || ''}
-                    onChange={(value) => setSettingsForm((prev) => ({ ...prev, sms_gateway_password: value }))}
-                    InputComponent={Input}
-                  />
-                  <Field
-                    label={t('testSmsTo')}
-                    value={testSmsTo}
-                    onChange={setTestSmsTo}
-                    InputComponent={Input}
-                  />
-                  <div className='flex items-end'>
+                  <div className='flex'>
                     <Button
                       type='button'
                       variant='outline'
-                      className='w-full'
+                      className='w-full sm:ml-auto sm:w-auto sm:min-w-[180px]'
                       onClick={() => runSmsTest().catch(() => {})}
                       disabled={testingSms || !testSmsTo}
                     >
@@ -639,12 +647,6 @@ export function AdminDialogs({
                     </Button>
                   </div>
                 </div>
-                <Field
-                  label={t('testSmsMessage')}
-                  value={testSmsMessage}
-                  onChange={setTestSmsMessage}
-                  InputComponent={Textarea}
-                />
               </div>
 
               <div className='grid gap-3 rounded-2xl border p-3'>
