@@ -144,6 +144,31 @@ export function AdminDialogs({
     }
   }
 
+  function choreChannelState(delivery) {
+    const normalized = String(delivery || 'both').toLowerCase();
+    return {
+      sms: normalized === 'sms' || normalized === 'both',
+      email: normalized === 'email' || normalized === 'both'
+    };
+  }
+
+  function updateChoreAlertDelivery(channel, checked) {
+    setChoreForm((prev) => {
+      const current = choreChannelState(prev.alert_delivery);
+      const nextState = {
+        sms: channel === 'sms' ? checked : current.sms,
+        email: channel === 'email' ? checked : current.email
+      };
+
+      if (!nextState.sms && !nextState.email) {
+        return prev;
+      }
+
+      const nextDelivery = nextState.sms && nextState.email ? 'both' : nextState.sms ? 'sms' : 'email';
+      return { ...prev, alert_delivery: nextDelivery };
+    });
+  }
+
   return (
     <>
       <Dialog open={personDialogOpen} onOpenChange={setPersonDialogOpen}>
@@ -307,6 +332,39 @@ export function AdminDialogs({
                   />
                 </div>
               </div>
+              {choreForm.has_deadline && choreForm.alert_enabled ? (
+                <div className='mt-2 grid gap-1.5'>
+                  <Label className='text-sm font-semibold text-slate-700'>{t('deadlineAlertDelivery')}</Label>
+                  <div className='grid gap-2 rounded-2xl border border-slate-200 p-2.5 md:grid-cols-2'>
+                    <label className='flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700'>
+                      <input
+                        type='checkbox'
+                        checked={choreChannelState(choreForm.alert_delivery).sms}
+                        disabled={
+                          choreChannelState(choreForm.alert_delivery).sms &&
+                          !choreChannelState(choreForm.alert_delivery).email
+                        }
+                        onChange={(event) => updateChoreAlertDelivery('sms', event.target.checked)}
+                        className='h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary'
+                      />
+                      <span>{t('channelSms')}</span>
+                    </label>
+                    <label className='flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700'>
+                      <input
+                        type='checkbox'
+                        checked={choreChannelState(choreForm.alert_delivery).email}
+                        disabled={
+                          choreChannelState(choreForm.alert_delivery).email &&
+                          !choreChannelState(choreForm.alert_delivery).sms
+                        }
+                        onChange={(event) => updateChoreAlertDelivery('email', event.target.checked)}
+                        className='h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary'
+                      />
+                      <span>{t('channelEmail')}</span>
+                    </label>
+                  </div>
+                </div>
+              ) : null}
             </div>
 
             <div className='flex items-center justify-between rounded-2xl border p-3'>
@@ -505,117 +563,64 @@ export function AdminDialogs({
               </div>
               <ColorSchemePicker t={t} />
 
-              <div className='grid gap-2 rounded-2xl border p-3'>
-                <div className='flex items-center justify-between'>
-                  <Label className='text-sm font-semibold text-slate-700'>{t('deadlineAlertsEnabled')}</Label>
-                  <Switch
-                    checked={Boolean(settingsForm.deadline_alerts_enabled)}
-                    onCheckedChange={(checked) =>
-                      setSettingsForm((prev) => ({ ...prev, deadline_alerts_enabled: checked ? 1 : 0 }))
-                    }
-                  />
+              <div className='grid gap-3 rounded-2xl border p-3'>
+                <h4 className='text-sm font-semibold text-slate-800'>{t('alertSettings')}</h4>
+                <div className='grid gap-2'>
+                  <div className='flex items-center justify-between'>
+                    <Label className='text-sm font-semibold text-slate-700'>{t('deadlineAlertsEnabled')}</Label>
+                    <Switch
+                      checked={Boolean(settingsForm.deadline_alerts_enabled)}
+                      onCheckedChange={(checked) =>
+                        setSettingsForm((prev) => ({ ...prev, deadline_alerts_enabled: checked ? 1 : 0 }))
+                      }
+                    />
+                  </div>
+                  <div className='flex items-center justify-between'>
+                    <Label className='text-sm font-semibold text-slate-700'>{t('weekOwnerReminder')}</Label>
+                    <Switch
+                      checked={Boolean(settingsForm.weekly_owner_alert_enabled)}
+                      onCheckedChange={(checked) =>
+                        setSettingsForm((prev) => ({ ...prev, weekly_owner_alert_enabled: checked ? 1 : 0 }))
+                      }
+                    />
+                  </div>
                 </div>
-                <div className='flex items-center justify-between'>
-                  <Label className='text-sm font-semibold text-slate-700'>{t('weekOwnerReminder')}</Label>
-                  <Switch
-                    checked={Boolean(settingsForm.weekly_owner_alert_enabled)}
-                    onCheckedChange={(checked) =>
-                      setSettingsForm((prev) => ({ ...prev, weekly_owner_alert_enabled: checked ? 1 : 0 }))
-                    }
-                  />
-                </div>
-              </div>
-              <div className='grid gap-3 md:grid-cols-2'>
                 <Field
                   label={t('alertWebhookUrl')}
                   value={settingsForm.alert_webhook_url || ''}
                   onChange={(value) => setSettingsForm((prev) => ({ ...prev, alert_webhook_url: value }))}
                   InputComponent={Input}
                 />
-                <Field
-                  label={t('smsApiGatewayUrl')}
-                  value={settingsForm.sms_gateway_url || ''}
-                  onChange={(value) => setSettingsForm((prev) => ({ ...prev, sms_gateway_url: value }))}
-                  InputComponent={Input}
-                />
-                <Field
-                  label={t('smsApiUsername')}
-                  value={settingsForm.sms_gateway_username || ''}
-                  onChange={(value) => setSettingsForm((prev) => ({ ...prev, sms_gateway_username: value }))}
-                  InputComponent={Input}
-                />
-                <Field
-                  label={t('smsApiPassword')}
-                  type='password'
-                  value={settingsForm.sms_gateway_password || ''}
-                  onChange={(value) => setSettingsForm((prev) => ({ ...prev, sms_gateway_password: value }))}
-                  InputComponent={Input}
-                />
-                <Field
-                  label={t('smsMessageType')}
-                  value={settingsForm.sms_gateway_message_type || 'sms.automatic'}
-                  onChange={(value) => setSettingsForm((prev) => ({ ...prev, sms_gateway_message_type: value }))}
-                  InputComponent={Input}
-                />
-                <Field
-                  label={t('smtpHost')}
-                  value={settingsForm.smtp_host || ''}
-                  onChange={(value) => setSettingsForm((prev) => ({ ...prev, smtp_host: value }))}
-                  InputComponent={Input}
-                />
-                <Field
-                  label={t('smtpPort')}
-                  type='number'
-                  value={String(settingsForm.smtp_port || 587)}
-                  onChange={(value) => setSettingsForm((prev) => ({ ...prev, smtp_port: Number(value || 587) }))}
-                  InputComponent={Input}
-                />
-                <Field
-                  label={t('smtpUser')}
-                  value={settingsForm.smtp_user || ''}
-                  onChange={(value) => setSettingsForm((prev) => ({ ...prev, smtp_user: value }))}
-                  InputComponent={Input}
-                />
-                <Field
-                  label={t('smtpPass')}
-                  type='password'
-                  value={settingsForm.smtp_pass || ''}
-                  onChange={(value) => setSettingsForm((prev) => ({ ...prev, smtp_pass: value }))}
-                  InputComponent={Input}
-                />
-                <Field
-                  label={t('smtpFrom')}
-                  value={settingsForm.smtp_from || ''}
-                  onChange={(value) => setSettingsForm((prev) => ({ ...prev, smtp_from: value }))}
-                  InputComponent={Input}
-                />
-                <div className='flex items-center justify-between rounded-2xl border p-2.5'>
-                  <Label className='text-sm font-semibold text-slate-700'>{t('smtpSecure')}</Label>
-                  <Switch
-                    checked={Boolean(settingsForm.smtp_secure)}
-                    onCheckedChange={(checked) => setSettingsForm((prev) => ({ ...prev, smtp_secure: checked ? 1 : 0 }))}
-                  />
-                </div>
               </div>
+
               <div className='grid gap-3 rounded-2xl border p-3'>
+                <h4 className='text-sm font-semibold text-slate-800'>{t('smsSettings')}</h4>
                 <div className='grid gap-3 md:grid-cols-2'>
                   <Field
-                    label={t('testEmailTo')}
-                    value={testEmailTo}
-                    onChange={setTestEmailTo}
+                    label={t('smsApiGatewayUrl')}
+                    value={settingsForm.sms_gateway_url || ''}
+                    onChange={(value) => setSettingsForm((prev) => ({ ...prev, sms_gateway_url: value }))}
                     InputComponent={Input}
                   />
-                  <div className='flex items-end'>
-                    <Button
-                      type='button'
-                      variant='outline'
-                      className='w-full'
-                      onClick={() => runEmailTest().catch(() => {})}
-                      disabled={testingEmail || !testEmailTo}
-                    >
-                      {testingEmail ? t('sending') : t('sendTestEmail')}
-                    </Button>
-                  </div>
+                  <Field
+                    label={t('smsMessageType')}
+                    value={settingsForm.sms_gateway_message_type || 'sms.automatic'}
+                    onChange={(value) => setSettingsForm((prev) => ({ ...prev, sms_gateway_message_type: value }))}
+                    InputComponent={Input}
+                  />
+                  <Field
+                    label={t('smsApiUsername')}
+                    value={settingsForm.sms_gateway_username || ''}
+                    onChange={(value) => setSettingsForm((prev) => ({ ...prev, sms_gateway_username: value }))}
+                    InputComponent={Input}
+                  />
+                  <Field
+                    label={t('smsApiPassword')}
+                    type='password'
+                    value={settingsForm.sms_gateway_password || ''}
+                    onChange={(value) => setSettingsForm((prev) => ({ ...prev, sms_gateway_password: value }))}
+                    InputComponent={Input}
+                  />
                   <Field
                     label={t('testSmsTo')}
                     value={testSmsTo}
@@ -640,17 +645,81 @@ export function AdminDialogs({
                   onChange={setTestSmsMessage}
                   InputComponent={Textarea}
                 />
-                {testFeedback.message ? (
-                  <p
-                    className={cn(
-                      'text-sm font-medium',
-                      testFeedback.tone === 'error' ? 'text-red-600' : 'text-emerald-700'
-                    )}
-                  >
-                    {testFeedback.message}
-                  </p>
-                ) : null}
               </div>
+
+              <div className='grid gap-3 rounded-2xl border p-3'>
+                <h4 className='text-sm font-semibold text-slate-800'>{t('emailSettings')}</h4>
+                <div className='grid gap-3 md:grid-cols-2'>
+                  <Field
+                    label={t('smtpHost')}
+                    value={settingsForm.smtp_host || ''}
+                    onChange={(value) => setSettingsForm((prev) => ({ ...prev, smtp_host: value }))}
+                    InputComponent={Input}
+                  />
+                  <Field
+                    label={t('smtpPort')}
+                    type='number'
+                    value={String(settingsForm.smtp_port || 587)}
+                    onChange={(value) => setSettingsForm((prev) => ({ ...prev, smtp_port: Number(value || 587) }))}
+                    InputComponent={Input}
+                  />
+                  <Field
+                    label={t('smtpUser')}
+                    value={settingsForm.smtp_user || ''}
+                    onChange={(value) => setSettingsForm((prev) => ({ ...prev, smtp_user: value }))}
+                    InputComponent={Input}
+                  />
+                  <Field
+                    label={t('smtpPass')}
+                    type='password'
+                    value={settingsForm.smtp_pass || ''}
+                    onChange={(value) => setSettingsForm((prev) => ({ ...prev, smtp_pass: value }))}
+                    InputComponent={Input}
+                  />
+                  <Field
+                    label={t('smtpFrom')}
+                    value={settingsForm.smtp_from || ''}
+                    onChange={(value) => setSettingsForm((prev) => ({ ...prev, smtp_from: value }))}
+                    InputComponent={Input}
+                  />
+                  <div className='flex items-center justify-between rounded-2xl border p-2.5'>
+                    <Label className='text-sm font-semibold text-slate-700'>{t('smtpSecure')}</Label>
+                    <Switch
+                      checked={Boolean(settingsForm.smtp_secure)}
+                      onCheckedChange={(checked) =>
+                        setSettingsForm((prev) => ({ ...prev, smtp_secure: checked ? 1 : 0 }))
+                      }
+                    />
+                  </div>
+                  <Field
+                    label={t('testEmailTo')}
+                    value={testEmailTo}
+                    onChange={setTestEmailTo}
+                    InputComponent={Input}
+                  />
+                  <div className='flex items-end'>
+                    <Button
+                      type='button'
+                      variant='outline'
+                      className='w-full'
+                      onClick={() => runEmailTest().catch(() => {})}
+                      disabled={testingEmail || !testEmailTo}
+                    >
+                      {testingEmail ? t('sending') : t('sendTestEmail')}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+              {testFeedback.message ? (
+                <p
+                  className={cn(
+                    'text-sm font-medium',
+                    testFeedback.tone === 'error' ? 'text-red-600' : 'text-emerald-700'
+                  )}
+                >
+                  {testFeedback.message}
+                </p>
+              ) : null}
               <DialogFooter>
                 <Button type='button' variant='outline' onClick={closeSettings}>
                   {t('cancel')}

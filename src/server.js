@@ -138,6 +138,19 @@ function asWeekdayMask(value) {
   return uniqueSorted.join(',');
 }
 
+function asAlertDelivery(value, fallback = 'both') {
+  if (value === undefined || value === null || value === '') {
+    return fallback;
+  }
+
+  const normalized = String(value).trim().toLowerCase();
+  if (normalized === 'sms' || normalized === 'email' || normalized === 'both') {
+    return normalized;
+  }
+
+  throw new Error('alert_delivery must be sms, email, or both');
+}
+
 function asBoolInt(value, name) {
   if (value === undefined || value === null || value === '') {
     throw new Error(`${name} is required`);
@@ -311,8 +324,17 @@ app.get('/api/chores', (req, res, next) => {
 
 app.post('/api/chores', (req, res, next) => {
   try {
-    const { name, description, interval_days, start_date, due_time, weekday_mask, alert_enabled, active } =
-      req.body;
+    const {
+      name,
+      description,
+      interval_days,
+      start_date,
+      due_time,
+      weekday_mask,
+      alert_enabled,
+      alert_delivery,
+      active
+    } = req.body;
 
     if (!name || !String(name).trim()) {
       return res.status(400).json({ error: 'name is required' });
@@ -326,6 +348,7 @@ app.post('/api/chores', (req, res, next) => {
       due_time: asTimeOrNull(due_time),
       weekday_mask: asWeekdayMask(weekday_mask),
       alert_enabled: alert_enabled === undefined ? 1 : asBoolInt(alert_enabled, 'alert_enabled'),
+      alert_delivery: asAlertDelivery(alert_delivery, 'both'),
       active: active === undefined ? 1 : active
     });
 
@@ -366,6 +389,10 @@ app.patch('/api/chores/:id', (req, res, next) => {
 
     if (Object.prototype.hasOwnProperty.call(req.body, 'alert_enabled')) {
       payload.alert_enabled = asBoolInt(req.body.alert_enabled, 'alert_enabled');
+    }
+
+    if (Object.prototype.hasOwnProperty.call(req.body, 'alert_delivery')) {
+      payload.alert_delivery = asAlertDelivery(req.body.alert_delivery, 'both');
     }
 
     if (Object.prototype.hasOwnProperty.call(req.body, 'active')) {

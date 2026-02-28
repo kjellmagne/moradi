@@ -11,10 +11,12 @@ db.pragma('foreign_keys = ON');
 
 const VALID_LANGUAGES = new Set(['en', 'no']);
 const VALID_GAMIFICATION_MODES = new Set(['friendly', 'hardcore']);
+const VALID_DEADLINE_ALERT_DELIVERY = new Set(['sms', 'email', 'both']);
 const DEFAULT_SETTINGS = Object.freeze({
   language: 'en',
   gamification_mode: 'friendly',
   deadline_alerts_enabled: 1,
+  deadline_alert_delivery: 'both',
   weekly_owner_alert_enabled: 1,
   alert_webhook_url: '',
   sms_gateway_url: '',
@@ -246,6 +248,10 @@ function ensureSchemaMigrations() {
   if (!choreColumns.includes('alert_enabled')) {
     db.exec('ALTER TABLE chores ADD COLUMN alert_enabled INTEGER NOT NULL DEFAULT 1');
   }
+  if (!choreColumns.includes('alert_delivery')) {
+    db.exec("ALTER TABLE chores ADD COLUMN alert_delivery TEXT NOT NULL DEFAULT 'both'");
+  }
+  db.exec("UPDATE chores SET alert_delivery = 'both' WHERE alert_delivery IS NULL OR trim(alert_delivery) = ''");
   db.exec('DROP TABLE IF EXISTS weekly_assignments');
 }
 
@@ -257,6 +263,18 @@ function normalizeLanguage(value) {
 function normalizeGamificationMode(value) {
   const normalized = String(value || '').trim().toLowerCase();
   return VALID_GAMIFICATION_MODES.has(normalized) ? normalized : DEFAULT_SETTINGS.gamification_mode;
+}
+
+function normalizeDeadlineAlertDelivery(value) {
+  const normalized = String(value || '').trim().toLowerCase();
+  return VALID_DEADLINE_ALERT_DELIVERY.has(normalized)
+    ? normalized
+    : DEFAULT_SETTINGS.deadline_alert_delivery;
+}
+
+function normalizeChoreAlertDelivery(value) {
+  const normalized = String(value || '').trim().toLowerCase();
+  return VALID_DEADLINE_ALERT_DELIVERY.has(normalized) ? normalized : 'both';
 }
 
 function normalizeBoolInt(value, fallback = 0) {
@@ -300,6 +318,9 @@ function settingsFromMap(map) {
       map.get('deadline_alerts_enabled'),
       DEFAULT_SETTINGS.deadline_alerts_enabled
     ),
+    deadline_alert_delivery: normalizeDeadlineAlertDelivery(
+      map.get('deadline_alert_delivery') || DEFAULT_SETTINGS.deadline_alert_delivery
+    ),
     weekly_owner_alert_enabled: normalizeBoolInt(
       map.get('weekly_owner_alert_enabled'),
       DEFAULT_SETTINGS.weekly_owner_alert_enabled
@@ -339,6 +360,9 @@ export function updateSettings(patch = {}) {
     deadline_alerts_enabled: Object.prototype.hasOwnProperty.call(patch, 'deadline_alerts_enabled')
       ? normalizeBoolInt(patch.deadline_alerts_enabled, current.deadline_alerts_enabled)
       : current.deadline_alerts_enabled,
+    deadline_alert_delivery: Object.prototype.hasOwnProperty.call(patch, 'deadline_alert_delivery')
+      ? normalizeDeadlineAlertDelivery(patch.deadline_alert_delivery)
+      : current.deadline_alert_delivery,
     weekly_owner_alert_enabled: Object.prototype.hasOwnProperty.call(patch, 'weekly_owner_alert_enabled')
       ? normalizeBoolInt(patch.weekly_owner_alert_enabled, current.weekly_owner_alert_enabled)
       : current.weekly_owner_alert_enabled,
@@ -588,7 +612,7 @@ export function deletePerson(id) {
 export function listChores() {
   return db
     .prepare(
-      `SELECT id, name, description, interval_days, start_date, due_time, weekday_mask, alert_enabled, active
+      `SELECT id, name, description, interval_days, start_date, due_time, weekday_mask, alert_enabled, alert_delivery, active
        FROM chores
        ORDER BY name`
     )
@@ -603,12 +627,14 @@ export function createChore({
   due_time = null,
   weekday_mask = null,
   alert_enabled = 1,
+  alert_delivery = 'both',
   active = 1
 }) {
+  const normalizedAlertDelivery = normalizeChoreAlertDelivery(alert_delivery);
   const result = db
     .prepare(
-      `INSERT INTO chores (name, description, interval_days, start_date, due_time, weekday_mask, alert_enabled, active)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO chores (name, description, interval_days, start_date, due_time, weekday_mask, alert_enabled, alert_delivery, active)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     .run(
       name,
@@ -618,12 +644,13 @@ export function createChore({
       due_time,
       weekday_mask,
       alert_enabled ? 1 : 0,
+      normalizedAlertDelivery,
       active ? 1 : 0
     );
 
   return db
     .prepare(
-      `SELECT id, name, description, interval_days, start_date, due_time, weekday_mask, alert_enabled, active
+      `SELECT id, name, description, interval_days, start_date, due_time, weekday_mask, alert_enabled, alert_delivery, active
        FROM chores
        WHERE id = ?`
     )
@@ -642,6 +669,7 @@ export function updateChore(id, payload) {
     'due_time',
     'weekday_mask',
     'alert_enabled',
+    'alert_delivery',
     'active'
   ];
   for (const key of allowed) {
@@ -649,6 +677,8 @@ export function updateChore(id, payload) {
       updates.push(`${key} = ?`);
       if (key === 'active' || key === 'alert_enabled') {
         values.push(payload[key] ? 1 : 0);
+      } else if (key === 'alert_delivery') {
+        values.push(normalizeChoreAlertDelivery(payload[key]));
       } else {
         values.push(payload[key]);
       }
@@ -658,7 +688,7 @@ export function updateChore(id, payload) {
   if (!updates.length) {
     return db
       .prepare(
-        `SELECT id, name, description, interval_days, start_date, due_time, weekday_mask, alert_enabled, active
+        `SELECT id, name, description, interval_days, start_date, due_time, weekday_mask, alert_enabled, alert_delivery, active
          FROM chores
          WHERE id = ?`
       )
@@ -671,7 +701,7 @@ export function updateChore(id, payload) {
 
   return db
     .prepare(
-      `SELECT id, name, description, interval_days, start_date, due_time, weekday_mask, alert_enabled, active
+      `SELECT id, name, description, interval_days, start_date, due_time, weekday_mask, alert_enabled, alert_delivery, active
        FROM chores
        WHERE id = ?`
     )
@@ -948,7 +978,7 @@ export function getDailyPlan(
 ) {
   const chores = db
     .prepare(
-      `SELECT id, name, description, interval_days, start_date, due_time, weekday_mask, alert_enabled, active
+      `SELECT id, name, description, interval_days, start_date, due_time, weekday_mask, alert_enabled, alert_delivery, active
        FROM chores
        WHERE active = 1
        ORDER BY name`
@@ -978,6 +1008,7 @@ export function getDailyPlan(
 
     let dueTime = chore.due_time;
     let alertEnabled = Number(chore.alert_enabled) ? 1 : 0;
+    const alertDelivery = normalizeChoreAlertDelivery(chore.alert_delivery);
 
     if (deadlineMode === 0) {
       dueTime = null;
@@ -1001,6 +1032,7 @@ export function getDailyPlan(
       work_date: dateKey,
       due_time: dueTime,
       alert_enabled: alertEnabled,
+      alert_delivery: alertDelivery,
       responsible_person: person,
       assignment_source: assignment.source,
       completion,
@@ -1147,6 +1179,7 @@ export function createOverdueAlerts({ lookbackDays = 0, language = 'en' } = {}) 
           person_name: item.responsible_person?.name || null,
           person_email: item.responsible_person?.email || null,
           person_phone: item.responsible_person?.phone || null,
+          alert_delivery: item.alert_delivery || 'both',
           alert_type: 'deadline_missed',
           message
         });

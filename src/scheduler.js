@@ -85,6 +85,28 @@ function normalizeSmsMessageType(value) {
   return normalized || 'sms.automatic';
 }
 
+function normalizeAlertDelivery(value) {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (normalized === 'sms' || normalized === 'email' || normalized === 'both') {
+    return normalized;
+  }
+  return 'both';
+}
+
+function shouldSendSmsChannel({ type, delivery }) {
+  if (type !== 'deadline_missed') {
+    return true;
+  }
+  return delivery === 'sms' || delivery === 'both';
+}
+
+function shouldSendEmailChannel({ type, delivery }) {
+  if (type !== 'deadline_missed') {
+    return true;
+  }
+  return delivery === 'email' || delivery === 'both';
+}
+
 function buildSmsGatewayRequestUrl({ settings, to, message }) {
   const gatewayUrl = normalizeUrl(settings.sms_gateway_url);
   if (!gatewayUrl) {
@@ -155,6 +177,9 @@ async function sendViaSmtp({ settings, recipientEmail, subject, message, payload
 async function dispatchNotification({ settings, type, message, person, payload }) {
   const webhookUrl = normalizeUrl(settings.alert_webhook_url) || normalizeUrl(process.env.ALERT_WEBHOOK_URL);
   const smsGatewayUrl = normalizeUrl(settings.sms_gateway_url);
+  const alertDelivery = normalizeAlertDelivery(payload?.alert_delivery);
+  const smsEnabledForAlert = shouldSendSmsChannel({ type, delivery: alertDelivery });
+  const emailEnabledForAlert = shouldSendEmailChannel({ type, delivery: alertDelivery });
   const recipientName = person?.name || 'Unassigned person';
   const recipientEmail = person?.email || null;
   const recipientPhone = person?.phone || null;
@@ -180,12 +205,12 @@ async function dispatchNotification({ settings, type, message, person, payload }
     delivered = true;
   }
 
-  if (smsGatewayUrl && recipientPhone) {
+  if (smsEnabledForAlert && smsGatewayUrl && recipientPhone) {
     await sendViaSmsGateway({ settings, to: recipientPhone, message });
     delivered = true;
   }
 
-  if (recipientEmail && hasSmtpSettings(settings)) {
+  if (emailEnabledForAlert && recipientEmail && hasSmtpSettings(settings)) {
     const subject =
       type === 'week_owner_reminder'
         ? settings.language === 'no'

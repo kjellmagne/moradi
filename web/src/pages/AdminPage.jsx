@@ -111,6 +111,10 @@ const TEXT = {
     hardcore: 'Hardcore',
     weekOwnerReminder: 'Weekly owner reminder (Mon 08:00)',
     deadlineAlertsEnabled: 'Deadline alerts enabled',
+    deadlineAlertDelivery: 'Deadline alert channel',
+    channelSms: 'SMS',
+    channelEmail: 'Email',
+    channelBoth: 'Both',
     doneBy: 'Done by {name}',
     doneByAt: 'Done by {name} at {time}',
     everyDays: 'Every {days} day(s)',
@@ -172,6 +176,9 @@ const TEXT = {
     onTime: 'On time',
     streak: 'Streak',
     refresh: 'Refresh',
+    alertSettings: 'Alert settings',
+    smsSettings: 'SMS settings',
+    emailSettings: 'Email settings',
     alertWebhookUrl: 'Alert webhook URL',
     smsApiGatewayUrl: 'SMS API gateway URL',
     smsApiUsername: 'SMS API username',
@@ -273,6 +280,10 @@ const TEXT = {
     hardcore: 'Hardcore',
     weekOwnerReminder: 'Ukevarsel (man 08:00)',
     deadlineAlertsEnabled: 'Fristvarsler aktiv',
+    deadlineAlertDelivery: 'Kanal for fristvarsel',
+    channelSms: 'SMS',
+    channelEmail: 'E-post',
+    channelBoth: 'Begge',
     doneBy: 'Fullført av {name}',
     doneByAt: 'Fullført av {name} kl {time}',
     everyDays: 'Hver {days}. dag',
@@ -334,6 +345,9 @@ const TEXT = {
     onTime: 'I tide',
     streak: 'Streak',
     refresh: 'Oppdater',
+    alertSettings: 'Varselinnstillinger',
+    smsSettings: 'SMS-innstillinger',
+    emailSettings: 'E-postinnstillinger',
     alertWebhookUrl: 'Varsel-webhook URL',
     smsApiGatewayUrl: 'SMS API gateway URL',
     smsApiUsername: 'SMS API brukernavn',
@@ -425,6 +439,7 @@ export function AdminPage() {
     has_deadline: false,
     due_time: '',
     alert_enabled: false,
+    alert_delivery: 'both',
     active: true
   });
   const [weekOwnerDialogOpen, setWeekOwnerDialogOpen] = useState(false);
@@ -698,6 +713,7 @@ export function AdminPage() {
       weekday_mask: choreForm.repeat_mode === 'weekdays' ? Array.from(choreForm.weekday_mask).join(',') : null,
       due_time: choreForm.has_deadline ? choreForm.due_time || null : null,
       alert_enabled: choreForm.has_deadline && choreForm.alert_enabled ? 1 : 0,
+      alert_delivery: String(choreForm.alert_delivery || 'both').trim().toLowerCase() || 'both',
       active: choreForm.active ? 1 : 0
     };
 
@@ -926,11 +942,13 @@ export function AdminPage() {
               has_deadline: false,
               due_time: '',
               alert_enabled: false,
+              alert_delivery: 'both',
               active: true
             });
             setChoreDialogOpen(true);
           }}
           onEdit={(row) => {
+            const alertDelivery = String(row.alert_delivery || '').toLowerCase();
             setChoreForm({
               id: row.id,
               name: row.name || '',
@@ -942,6 +960,7 @@ export function AdminPage() {
               has_deadline: Boolean(row.due_time),
               due_time: row.due_time || '',
               alert_enabled: Boolean(row.due_time) && Number(row.alert_enabled) === 1,
+              alert_delivery: ['sms', 'email', 'both'].includes(alertDelivery) ? alertDelivery : 'both',
               active: Boolean(row.active)
             });
             setChoreDialogOpen(true);
