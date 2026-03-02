@@ -759,7 +759,7 @@ app.get('/api/alerts', (req, res, next) => {
 app.post('/api/alerts/run', (req, res, next) => {
   try {
     const settings = getSettings();
-    const createdAlerts = createOverdueAlerts({ lookbackDays: 0, language: settings.language });
+    const createdAlerts = createOverdueAlerts({ lookbackDays: 0, language: settings.language, settings });
     res.status(201).json({ ok: true, created: createdAlerts.length });
   } catch (error) {
     next(error);

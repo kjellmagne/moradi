@@ -21,6 +21,7 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV DATA_DIR=/app/data
+ENV TZ=Europe/Oslo
 
 COPY --from=build /app/package.json ./package.json
 COPY --from=build /app/package-lock.json ./package-lock.json

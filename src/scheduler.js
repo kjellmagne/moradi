@@ -5,9 +5,12 @@ import {
   getSettings,
   getWeekOwnerForWeekStart,
   markWeekOwnerNotificationSent,
+  resolveMobileAppUrl,
   startOfWeekKey,
   toDateKey
 } from './db.js';
+
+const SCHEDULER_TIMEZONE = String(process.env.SCHEDULER_TIMEZONE || process.env.TZ || 'Europe/Oslo').trim() || 'Europe/Oslo';
 
 function localDateFromKey(dateKey) {
   const [year, month, day] = String(dateKey).split('-').map(Number);
@@ -40,12 +43,35 @@ function weekNumberFromDateKey(dateKey) {
   return 1 + Math.round((date.getTime() - firstThursday.getTime()) / 604800000);
 }
 
-function weeklyOwnerReminderMessage({ language, personName, weekNumber, weekRange }) {
-  if (language === 'no') {
-    return `Hei ${personName}. Du har ukesansvaret for kontoroppgaver i uke ${weekNumber} (${weekRange}).`;
-  }
+function renderTemplate(template, variables = {}) {
+  let output = String(template || '');
+  Object.entries(variables).forEach(([key, value]) => {
+    output = output.replaceAll(`{${key}}`, String(value ?? ''));
+  });
+  return output;
+}
 
-  return `Hi ${personName}. You are responsible for office chores for week ${weekNumber} (${weekRange}).`;
+function weeklyOwnerReminderMessage({ settings, language, personName, weekNumber, weekRange }) {
+  const fallbackNo = 'Hei {person}. Du har ukesansvaret for kontoroppgaver i uke {week_number} ({week_range}).';
+  const fallbackEn = 'Hi {person}. You are responsible for office chores for week {week_number} ({week_range}).';
+  const template =
+    language === 'no'
+      ? String(settings.weekly_owner_message_template_no || '').trim() || fallbackNo
+      : String(settings.weekly_owner_message_template_en || '').trim() || fallbackEn;
+  const mobileAppUrl = resolveMobileAppUrl(settings);
+
+  const rendered = renderTemplate(template, {
+    person: personName,
+    week_number: weekNumber,
+    week_range: weekRange,
+    mobile_url: mobileAppUrl
+  });
+
+  const normalizedMobileUrl = String(mobileAppUrl || '').trim();
+  if (!normalizedMobileUrl || rendered.includes(normalizedMobileUrl)) {
+    return rendered;
+  }
+  return `${rendered}\n\n${normalizedMobileUrl}`;
 }
 
 function normalizeUrl(value) {
@@ -314,7 +340,11 @@ async function runDeadlineAlertScan() {
     return;
   }
 
-  const createdAlerts = createOverdueAlerts({ lookbackDays: 0, language: settings.language });
+  const createdAlerts = createOverdueAlerts({
+    lookbackDays: 0,
+    language: settings.language,
+    settings
+  });
 
   for (const alert of createdAlerts) {
     const person = {
@@ -355,6 +385,7 @@ async function runWeeklyOwnerReminder() {
   const weekNumber = weekNumberFromDateKey(weekStart);
   const weekRange = formatWeekRange(weekStart);
   const message = weeklyOwnerReminderMessage({
+    settings,
     language: settings.language,
     personName: owner.name,
     weekNumber,
@@ -394,7 +425,7 @@ export function startScheduler() {
     } catch (error) {
       console.error('Deadline alert scheduler failed:', error);
     }
-  });
+  }, { timezone: SCHEDULER_TIMEZONE });
 
   const weeklyOwnerTask = cron.schedule('0 8 * * 1', async () => {
     try {
@@ -402,7 +433,7 @@ export function startScheduler() {
     } catch (error) {
       console.error('Weekly owner scheduler failed:', error);
     }
-  });
+  }, { timezone: SCHEDULER_TIMEZONE });
 
   return {
     deadlineTask,

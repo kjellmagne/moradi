@@ -269,14 +269,14 @@ export function IpadPage() {
         </div>
       </header>
 
-      <div className='mt-4 px-5'>
+      <div className='mt-4 px-4'>
         {activeTab === 'chores' ? (
           <div onTouchStart={weekSwipe.onTouchStart} onTouchEnd={weekSwipe.onTouchEnd}>
-            <div className='scroll-area-soft overflow-x-auto pb-2'>
+            <div className='scroll-area-soft overflow-x-hidden pb-2'>
               <div
                 key={weekStart}
                 className={cn(
-                  'grid min-w-[1260px] grid-cols-5 gap-3',
+                  'grid grid-cols-5 gap-2 lg:gap-2.5',
                   slideDirection === 'right' ? 'animate-slide-right' : 'animate-slide-left'
                 )}
               >

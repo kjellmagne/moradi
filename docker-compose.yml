@@ -9,5 +9,6 @@ services:
       NODE_ENV: production
       PORT: 3000
       DATA_DIR: /app/data
+      TZ: Europe/Oslo
     volumes:
       - /opt/apps/moradi/data:/app/data

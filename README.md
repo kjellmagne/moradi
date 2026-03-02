@@ -113,12 +113,15 @@ Deadline alerts:
 - deduplicated by `(chore_id, work_date, alert_type)`
 - alert is sent once per chore instance after deadline is missed
 - delivery channel for deadline alerts is configured per chore (`sms`, `email`, or both)
+- mobile app URL is appended at the bottom of reminder messages
 
 Weekly owner reminders:
 
 - scheduler runs Monday at `08:00`
 - sends reminder to assigned week owner for current week
 - deduplicated by week in `weekly_owner_notifications`
+- scheduler timezone uses `SCHEDULER_TIMEZONE`, otherwise `TZ`, otherwise `Europe/Oslo`
+- mobile app URL is appended at the bottom of reminder messages
 
 Delivery channels (if configured):
 
@@ -134,6 +137,12 @@ SMS gateway format used by Moradi:
 - default `message-type` is `sms.automatic`
 
 In Admin settings you can send test email and test SMS with current (unsaved) configuration.
+
+Mobile URL in reminders:
+
+- set `MOBILE_APP_URL` to force a full URL shown in reminders
+- or set `PUBLIC_BASE_URL` and Moradi will append `/employee/mobile/:accessKey`
+- if neither is set, reminders include a relative URL path
 
 ## Mobile access security (low security)
 
@@ -182,7 +191,7 @@ docker build -t moradi:latest .
 Run container:
 
 ```bash
-docker run --name moradi -p 3000:3000 -e DATA_DIR=/app/data -v /opt/apps/moradi/data:/app/data moradi:latest
+docker run --name moradi -p 3000:3000 -e DATA_DIR=/app/data -e TZ=Europe/Oslo -v /opt/apps/moradi/data:/app/data moradi:latest
 ```
 
 `/app/data` contains `chores.db` (including settings in `app_settings`). Mounting this path keeps data persistent across restarts/redeploys.

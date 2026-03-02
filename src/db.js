@@ -18,12 +18,22 @@ db.pragma('foreign_keys = ON');
 const VALID_LANGUAGES = new Set(['en', 'no']);
 const VALID_GAMIFICATION_MODES = new Set(['friendly', 'hardcore']);
 const VALID_DEADLINE_ALERT_DELIVERY = new Set(['sms', 'email', 'both']);
+const DEFAULT_DEADLINE_MESSAGE_TEMPLATE_EN = '{chore} was not completed before {due_time} by {person}.';
+const DEFAULT_DEADLINE_MESSAGE_TEMPLATE_NO = '{chore} ble ikke fullfort innen {due_time} av {person}.';
+const DEFAULT_WEEKLY_OWNER_MESSAGE_TEMPLATE_EN =
+  'Hi {person}. You are responsible for office chores for week {week_number} ({week_range}).';
+const DEFAULT_WEEKLY_OWNER_MESSAGE_TEMPLATE_NO =
+  'Hei {person}. Du har ukesansvaret for kontoroppgaver i uke {week_number} ({week_range}).';
 const DEFAULT_SETTINGS = Object.freeze({
   language: 'en',
   gamification_mode: 'friendly',
   deadline_alerts_enabled: 1,
   deadline_alert_delivery: 'both',
   weekly_owner_alert_enabled: 1,
+  deadline_message_template_en: DEFAULT_DEADLINE_MESSAGE_TEMPLATE_EN,
+  deadline_message_template_no: DEFAULT_DEADLINE_MESSAGE_TEMPLATE_NO,
+  weekly_owner_message_template_en: DEFAULT_WEEKLY_OWNER_MESSAGE_TEMPLATE_EN,
+  weekly_owner_message_template_no: DEFAULT_WEEKLY_OWNER_MESSAGE_TEMPLATE_NO,
   mobile_access_key: '',
   alert_webhook_url: '',
   sms_gateway_url: '',
@@ -313,6 +323,69 @@ function normalizeString(value) {
   return String(value || '').trim();
 }
 
+function normalizeMessageTemplate(value, fallback = '') {
+  const normalized = String(value || '').trim();
+  return normalized || String(fallback || '').trim();
+}
+
+function renderTemplate(template, variables = {}) {
+  let output = String(template || '');
+  Object.entries(variables).forEach(([key, value]) => {
+    output = output.replaceAll(`{${key}}`, String(value ?? ''));
+  });
+  return output;
+}
+
+function normalizeBaseUrl(value) {
+  const normalized = String(value || '').trim();
+  if (!normalized) {
+    return '';
+  }
+  return normalized.replace(/\/+$/, '');
+}
+
+function mobilePathFromAccessKey(accessKey) {
+  const normalized = String(accessKey || '').trim();
+  if (!normalized) {
+    return '/employee/mobile';
+  }
+  return `/employee/mobile/${encodeURIComponent(normalized)}`;
+}
+
+function withMobileAppUrlFooter(message, mobileAppUrl) {
+  const text = String(message || '').trim();
+  const footer = String(mobileAppUrl || '').trim();
+  if (!text) {
+    return footer;
+  }
+  if (!footer || text.includes(footer)) {
+    return text;
+  }
+  return `${text}\n\n${footer}`;
+}
+
+export function resolveMobileAppUrl(settings = null) {
+  const explicitMobileAppUrl = normalizeString(process.env.MOBILE_APP_URL);
+  if (explicitMobileAppUrl) {
+    return explicitMobileAppUrl;
+  }
+
+  const effectiveSettings = settings || getSettings();
+  const baseUrl = normalizeBaseUrl(
+    process.env.PUBLIC_BASE_URL
+      || process.env.APP_BASE_URL
+      || process.env.EXTERNAL_BASE_URL
+      || process.env.EXTERNAL_URL
+      || ''
+  );
+  const mobilePath = mobilePathFromAccessKey(effectiveSettings.mobile_access_key);
+
+  if (!baseUrl) {
+    return mobilePath;
+  }
+  return `${baseUrl}${mobilePath}`;
+}
+
 function generateMobileAccessKey() {
   return randomBytes(16).toString('hex');
 }
@@ -356,6 +429,22 @@ function settingsFromMap(map) {
       map.get('weekly_owner_alert_enabled'),
       DEFAULT_SETTINGS.weekly_owner_alert_enabled
     ),
+    deadline_message_template_en: normalizeMessageTemplate(
+      map.get('deadline_message_template_en'),
+      DEFAULT_SETTINGS.deadline_message_template_en
+    ),
+    deadline_message_template_no: normalizeMessageTemplate(
+      map.get('deadline_message_template_no'),
+      DEFAULT_SETTINGS.deadline_message_template_no
+    ),
+    weekly_owner_message_template_en: normalizeMessageTemplate(
+      map.get('weekly_owner_message_template_en'),
+      DEFAULT_SETTINGS.weekly_owner_message_template_en
+    ),
+    weekly_owner_message_template_no: normalizeMessageTemplate(
+      map.get('weekly_owner_message_template_no'),
+      DEFAULT_SETTINGS.weekly_owner_message_template_no
+    ),
     mobile_access_key: normalizeString(map.get('mobile_access_key') || DEFAULT_SETTINGS.mobile_access_key),
     alert_webhook_url: normalizeString(map.get('alert_webhook_url') || DEFAULT_SETTINGS.alert_webhook_url),
     sms_gateway_url: normalizeString(map.get('sms_gateway_url') || DEFAULT_SETTINGS.sms_gateway_url),
@@ -398,6 +487,18 @@ export function updateSettings(patch = {}) {
     weekly_owner_alert_enabled: Object.prototype.hasOwnProperty.call(patch, 'weekly_owner_alert_enabled')
       ? normalizeBoolInt(patch.weekly_owner_alert_enabled, current.weekly_owner_alert_enabled)
       : current.weekly_owner_alert_enabled,
+    deadline_message_template_en: Object.prototype.hasOwnProperty.call(patch, 'deadline_message_template_en')
+      ? normalizeMessageTemplate(patch.deadline_message_template_en, current.deadline_message_template_en)
+      : current.deadline_message_template_en,
+    deadline_message_template_no: Object.prototype.hasOwnProperty.call(patch, 'deadline_message_template_no')
+      ? normalizeMessageTemplate(patch.deadline_message_template_no, current.deadline_message_template_no)
+      : current.deadline_message_template_no,
+    weekly_owner_message_template_en: Object.prototype.hasOwnProperty.call(patch, 'weekly_owner_message_template_en')
+      ? normalizeMessageTemplate(patch.weekly_owner_message_template_en, current.weekly_owner_message_template_en)
+      : current.weekly_owner_message_template_en,
+    weekly_owner_message_template_no: Object.prototype.hasOwnProperty.call(patch, 'weekly_owner_message_template_no')
+      ? normalizeMessageTemplate(patch.weekly_owner_message_template_no, current.weekly_owner_message_template_no)
+      : current.weekly_owner_message_template_no,
     mobile_access_key: Object.prototype.hasOwnProperty.call(patch, 'mobile_access_key')
       ? normalizeString(patch.mobile_access_key) || current.mobile_access_key
       : current.mobile_access_key,
@@ -1173,15 +1274,30 @@ function createAlertIfMissing({ chore_id, work_date, person_id, alert_type, mess
   return result.changes > 0;
 }
 
-function deadlineMissedMessage({ choreName, dueTime, personName, language = 'en' }) {
-  if (language === 'no') {
-    return `${choreName} ble ikke fullfort innen ${dueTime} av ${personName}.`;
-  }
-
-  return `${choreName} was not completed before ${dueTime} by ${personName}.`;
+function deadlineMissedMessage({ choreName, dueTime, personName, language = 'en', settings = null }) {
+  const effectiveSettings = settings || getSettings();
+  const mobileAppUrl = resolveMobileAppUrl(effectiveSettings);
+  const template =
+    language === 'no'
+      ? normalizeMessageTemplate(
+          effectiveSettings.deadline_message_template_no,
+          DEFAULT_DEADLINE_MESSAGE_TEMPLATE_NO
+        )
+      : normalizeMessageTemplate(
+          effectiveSettings.deadline_message_template_en,
+          DEFAULT_DEADLINE_MESSAGE_TEMPLATE_EN
+        );
+  const rendered = renderTemplate(template, {
+    chore: choreName,
+    due_time: dueTime,
+    person: personName,
+    mobile_url: mobileAppUrl
+  });
+  return withMobileAppUrlFooter(rendered, mobileAppUrl);
 }
 
-export function createOverdueAlerts({ lookbackDays = 0, language = 'en' } = {}) {
+export function createOverdueAlerts({ lookbackDays = 0, language = 'en', settings = null } = {}) {
+  const effectiveSettings = settings || getSettings();
   const today = new Date();
   const createdAlerts = [];
 
@@ -1206,7 +1322,8 @@ export function createOverdueAlerts({ lookbackDays = 0, language = 'en' } = {}) 
         choreName: item.chore_name,
         dueTime: item.due_time,
         personName,
-        language
+        language,
+        settings: effectiveSettings
       });
 
       const created = createAlertIfMissing({

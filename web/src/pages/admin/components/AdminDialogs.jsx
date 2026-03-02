@@ -700,6 +700,69 @@ export function AdminDialogs({
               </div>
 
               <div className='grid gap-3 rounded-2xl border p-3'>
+                <h4 className='text-sm font-semibold text-slate-800'>{t('messageTemplates')}</h4>
+                <div className='grid gap-3 xl:grid-cols-2'>
+                  <div className='grid gap-1.5'>
+                    <Label className='text-sm font-semibold text-slate-700'>{t('deadlineTemplateNo')}</Label>
+                    <Textarea
+                      value={settingsForm.deadline_message_template_no || ''}
+                      onChange={(event) =>
+                        setSettingsForm((prev) => ({
+                          ...prev,
+                          deadline_message_template_no: event.target.value
+                        }))
+                      }
+                      className='min-h-[88px] rounded-xl'
+                    />
+                  </div>
+                  <div className='grid gap-1.5'>
+                    <Label className='text-sm font-semibold text-slate-700'>{t('deadlineTemplateEn')}</Label>
+                    <Textarea
+                      value={settingsForm.deadline_message_template_en || ''}
+                      onChange={(event) =>
+                        setSettingsForm((prev) => ({
+                          ...prev,
+                          deadline_message_template_en: event.target.value
+                        }))
+                      }
+                      className='min-h-[88px] rounded-xl'
+                    />
+                  </div>
+                  <div className='grid gap-1.5'>
+                    <Label className='text-sm font-semibold text-slate-700'>{t('weeklyTemplateNo')}</Label>
+                    <Textarea
+                      value={settingsForm.weekly_owner_message_template_no || ''}
+                      onChange={(event) =>
+                        setSettingsForm((prev) => ({
+                          ...prev,
+                          weekly_owner_message_template_no: event.target.value
+                        }))
+                      }
+                      className='min-h-[88px] rounded-xl'
+                    />
+                  </div>
+                  <div className='grid gap-1.5'>
+                    <Label className='text-sm font-semibold text-slate-700'>{t('weeklyTemplateEn')}</Label>
+                    <Textarea
+                      value={settingsForm.weekly_owner_message_template_en || ''}
+                      onChange={(event) =>
+                        setSettingsForm((prev) => ({
+                          ...prev,
+                          weekly_owner_message_template_en: event.target.value
+                        }))
+                      }
+                      className='min-h-[88px] rounded-xl'
+                    />
+                  </div>
+                </div>
+                <div className='grid gap-0.5 text-xs text-slate-500'>
+                  <p className='font-semibold text-slate-700'>{t('templatePlaceholders')}</p>
+                  <p>{t('deadlineTemplateHint')}</p>
+                  <p>{t('weeklyTemplateHint')}</p>
+                </div>
+              </div>
+
+              <div className='grid gap-3 rounded-2xl border p-3'>
                 <h4 className='text-sm font-semibold text-slate-800'>{t('emailSettings')}</h4>
                 <div className='grid gap-3 md:grid-cols-2'>
                   <Field
