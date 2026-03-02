@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertCircle,
   CalendarDays,
@@ -22,6 +22,13 @@ import {
 import { localeForLanguage, normalizeLanguage, tr } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import { BottomSheet } from '@/components/BottomSheet';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle
+} from '@/components/ui/dialog';
 import { useSwipeX } from '@/components/useSwipe';
 import { useTheme, THEMES, THEME_COLORS } from '@/lib/theme';
 
@@ -48,8 +55,18 @@ const TEXT = {
     noDue: 'No chores due',
     noWeeks: 'No week owners configured.',
     unassigned: 'Unassigned',
+    responsible: 'Responsible',
+    status: 'Status',
+    description: 'Description',
+    noDescription: 'No description',
     deadline: 'Deadline',
     deadlineExpired: 'Deadline passed',
+    done: 'Done',
+    open: 'Open',
+    overdue: 'Overdue',
+    markDone: 'Mark done',
+    undo: 'Undo',
+    disabledThisDay: 'Disabled this day',
     doneBy: 'Done by {name}',
     notSelected: 'Not selected'
   },
@@ -73,8 +90,18 @@ const TEXT = {
     noDue: 'Ingen gjøremål',
     noWeeks: 'Ingen ukeansvar satt.',
     unassigned: 'Ikke tildelt',
+    responsible: 'Ansvarlig',
+    status: 'Status',
+    description: 'Beskrivelse',
+    noDescription: 'Ingen beskrivelse',
     deadline: 'Frist',
     deadlineExpired: 'Frist utløpt',
+    done: 'Fullført',
+    open: 'Åpen',
+    overdue: 'Forsinket',
+    markDone: 'Marker',
+    undo: 'Angre',
+    disabledThisDay: 'Deaktivert denne dagen',
     doneBy: 'Fullført av {name}',
     notSelected: 'Ikke valgt'
   }
@@ -107,13 +134,21 @@ export function IpadPage() {
   const [personSheetOpen, setPersonSheetOpen] = useState(false);
   const [selectedPersonId, setSelectedPersonId] = useState('');
   const [pendingAction, setPendingAction] = useState(null);
+  const [taskDialogOpen, setTaskDialogOpen] = useState(false);
+  const [activeTask, setActiveTask] = useState(null);
   const [slideDirection, setSlideDirection] = useState('right');
   const [activeTab, setActiveTab] = useState('chores');
+  const keepTaskDialogOpenRef = useRef(false);
 
   const locale = localeForLanguage(language);
   const t = (key, vars = {}) => tr(TEXT, language, key, vars);
 
   const days = useMemo(() => mondayToFridayDates(weekStart), [weekStart]);
+  const activeTaskItem = useMemo(() => {
+    if (!activeTask) return null;
+    const items = weekPlans[activeTask.dateKey] || [];
+    return items.find((item) => Number(item.chore_id) === Number(activeTask.chore_id)) || null;
+  }, [activeTask, weekPlans]);
 
   async function loadSettingsAndPeople() {
     const [settings, peopleRows] = await Promise.all([api.getSettings(), api.getPeople()]);
@@ -160,9 +195,54 @@ export function IpadPage() {
   }, [weekStart]);
 
   useEffect(() => {
+    setTaskDialogOpen(false);
+    setActiveTask(null);
+  }, [weekStart]);
+
+  useEffect(() => {
     if (!selectedPersonId) return;
     window.localStorage.setItem(STORAGE_KEY, String(selectedPersonId));
   }, [selectedPersonId]);
+
+  function preferredPersonIdForItem(item) {
+    const assignedId = item?.responsible_person?.id ? String(item.responsible_person.id) : '';
+    if (assignedId && people.some((person) => String(person.id) === assignedId)) {
+      return assignedId;
+    }
+    if (selectedPersonId && people.some((person) => String(person.id) === String(selectedPersonId))) {
+      return String(selectedPersonId);
+    }
+    return people[0] ? String(people[0].id) : '';
+  }
+
+  function applyCompletionOptimistic({ choreId, dateKey, completedBy }) {
+    const completedById = Number(completedBy);
+    const completedByName =
+      people.find((person) => Number(person.id) === completedById)?.name || '';
+
+    setWeekPlans((prev) => {
+      const dayItems = prev[dateKey] || [];
+      const nextDayItems = dayItems.map((row) => {
+        if (Number(row.chore_id) !== Number(choreId)) {
+          return row;
+        }
+        return {
+          ...row,
+          completion: {
+            ...(row.completion || {}),
+            completed_by: completedById,
+            completed_by_name: completedByName,
+            completed_at: new Date().toISOString()
+          },
+          overdue: false
+        };
+      });
+      return {
+        ...prev,
+        [dateKey]: nextDayItems
+      };
+    });
+  }
 
   async function toggleItem(item, dateKey) {
     setError('');
@@ -172,6 +252,11 @@ export function IpadPage() {
       return;
     }
 
+    const preferredPersonId = preferredPersonIdForItem(item);
+    if (preferredPersonId && String(preferredPersonId) !== String(selectedPersonId)) {
+      setSelectedPersonId(preferredPersonId);
+    }
+    keepTaskDialogOpenRef.current = true;
     setPendingAction({ chore_id: item.chore_id, work_date: dateKey });
     setPersonSheetOpen(true);
   }
@@ -189,9 +274,44 @@ export function IpadPage() {
       completed_by: Number(completedBy)
     });
 
+    applyCompletionOptimistic({
+      choreId: pendingAction.chore_id,
+      dateKey: pendingAction.work_date,
+      completedBy
+    });
+
     setPersonSheetOpen(false);
     setPendingAction(null);
     await loadWeekPlan(weekStart);
+  }
+
+  function openTaskDetails(item, dateKey) {
+    setActiveTask({ chore_id: item.chore_id, dateKey });
+    setTaskDialogOpen(true);
+  }
+
+  function closeTaskDetails() {
+    setTaskDialogOpen(false);
+    setActiveTask(null);
+  }
+
+  function taskStateLabel(item) {
+    if (item.instance_disabled) {
+      return t('disabledThisDay');
+    }
+    const state = choreState(item);
+    if (state === 'done') return t('done');
+    if (state === 'overdue') return t('overdue');
+    return t('open');
+  }
+
+  async function toggleActiveTask() {
+    if (!activeTask || !activeTaskItem || activeTaskItem.instance_disabled) {
+      return;
+    }
+    const target = activeTaskItem;
+    const dateKey = activeTask.dateKey;
+    await toggleItem(target, dateKey);
   }
 
   function navigateWeek(delta) {
@@ -206,6 +326,12 @@ export function IpadPage() {
 
   function formatDay(dateKey) {
     return new Intl.DateTimeFormat(locale, { weekday: 'short', day: 'numeric', month: 'short' }).format(
+      localDateFromKey(dateKey)
+    );
+  }
+
+  function formatDayLong(dateKey) {
+    return new Intl.DateTimeFormat(locale, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(
       localDateFromKey(dateKey)
     );
   }
@@ -337,7 +463,10 @@ export function IpadPage() {
                                       state === 'open' && 'ipad-check-btn-open',
                                       item.instance_disabled && 'opacity-40'
                                     )}
-                                    onClick={() => toggleItem(item, dateKey).catch((err) => setError(err.message))}
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      toggleItem(item, dateKey).catch((err) => setError(err.message));
+                                    }}
                                     disabled={Boolean(item.instance_disabled)}
                                   >
                                     {state === 'done' ? (
@@ -347,9 +476,12 @@ export function IpadPage() {
                                     )}
                                   </button>
 
-                                  <div className='min-w-0 flex-1'>
-                                    <div className='flex items-center gap-1.5'>
-                                      <ListChecks className='h-4 w-4 shrink-0 text-slate-500' />
+                                  <button
+                                    type='button'
+                                    onClick={() => openTaskDetails(item, dateKey)}
+                                    className='min-w-0 flex-1 rounded-xl px-1 py-0.5 text-left transition hover:bg-slate-50'
+                                  >
+                                    <div className='flex items-center'>
                                       <p
                                         className={cn(
                                           'truncate text-sm font-semibold text-slate-900',
@@ -360,33 +492,24 @@ export function IpadPage() {
                                       </p>
                                     </div>
 
-                                    <div className='ipad-task-divider' />
-
-                                    <div className='space-y-1'>
-                                      <div className='ipad-task-meta-row'>
-                                        <UserRound className='h-3.5 w-3.5' />
-                                        <span>{item.responsible_person?.name || t('unassigned')}</span>
-                                      </div>
+                                    <div className='mt-1.5 flex items-center gap-1.5'>
+                                      <span className='truncate text-xs text-slate-500'>
+                                        {item.completion?.completed_by_name
+                                          || item.responsible_person?.name
+                                          || t('unassigned')}
+                                      </span>
                                       {item.due_time ? (
-                                        <div className='ipad-task-meta-row'>
-                                          {state === 'overdue' ? (
-                                            <AlertCircle className='h-3.5 w-3.5 shrink-0 text-red-600' />
-                                          ) : (
-                                            <CalendarDays className='h-3.5 w-3.5 text-slate-500' />
+                                        <span
+                                          className={cn(
+                                            'ml-auto shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium',
+                                            state === 'overdue' ? 'bg-red-50 text-red-600' : 'bg-slate-100 text-slate-600'
                                           )}
-                                          <span className={cn(state === 'overdue' && 'font-medium text-red-600')}>
-                                            {state === 'overdue' ? t('deadlineExpired') : t('deadline')}: {item.due_time}
-                                          </span>
-                                        </div>
+                                        >
+                                          {item.due_time}
+                                        </span>
                                       ) : null}
                                     </div>
-
-                                    {item.completion?.completed_by_name ? (
-                                      <span className='ipad-done-tag'>
-                                        {t('doneBy', { name: item.completion.completed_by_name })}
-                                      </span>
-                                    ) : null}
-                                  </div>
+                                  </button>
                                 </div>
                               </div>
                             );
@@ -499,6 +622,117 @@ export function IpadPage() {
           </button>
         </div>
       </nav>
+
+      <Dialog
+        modal={false}
+        open={taskDialogOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            if (personSheetOpen || keepTaskDialogOpenRef.current) {
+              keepTaskDialogOpenRef.current = false;
+              return;
+            }
+            closeTaskDetails();
+          }
+        }}
+      >
+        <DialogContent className='w-[min(92vw,640px)] max-w-[640px] gap-3 rounded-[1.6rem] p-5'>
+          <DialogHeader>
+            <DialogTitle className='pr-8 text-base font-semibold text-slate-800'>
+              {activeTask?.dateKey ? formatDayLong(activeTask.dateKey) : ''}
+            </DialogTitle>
+            <DialogDescription />
+          </DialogHeader>
+
+          {activeTaskItem ? (
+            <div className='pt-1'>
+              <div className='rounded-2xl border border-slate-200 bg-white px-3 py-3'>
+                <div className='flex items-start gap-3'>
+                  <button
+                    type='button'
+                    onClick={() => toggleActiveTask().catch((err) => setError(err.message))}
+                    disabled={Boolean(activeTaskItem.instance_disabled)}
+                    className={cn(
+                      'ipad-detail-check-btn mt-0.5 shrink-0',
+                      choreState(activeTaskItem) === 'done' && 'ipad-detail-check-btn-done',
+                      activeTaskItem.instance_disabled && 'cursor-not-allowed opacity-45'
+                    )}
+                  >
+                    {choreState(activeTaskItem) === 'done' ? (
+                      <Check className='h-5 w-5' />
+                    ) : null}
+                  </button>
+
+                  <div className='min-w-0 flex-1'>
+                    <div className='flex items-center gap-1.5'>
+                      <ListChecks className='h-4 w-4 shrink-0 text-slate-500' />
+                      <p
+                        className={cn(
+                          'truncate text-[1.02rem] font-semibold text-slate-900',
+                          choreState(activeTaskItem) === 'done' && 'text-slate-500 line-through'
+                        )}
+                      >
+                        {activeTaskItem.chore_name}
+                      </p>
+                      <span
+                        className={cn(
+                          'ml-auto shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium',
+                          activeTaskItem.instance_disabled
+                            ? 'bg-slate-200 text-slate-600'
+                            : choreState(activeTaskItem) === 'done'
+                              ? 'bg-theme-100 text-theme-700'
+                              : choreState(activeTaskItem) === 'overdue'
+                                ? 'bg-red-50 text-red-600'
+                                : 'bg-slate-100 text-slate-600'
+                        )}
+                      >
+                        {taskStateLabel(activeTaskItem)}
+                      </span>
+                    </div>
+
+                    <div className='ipad-task-divider' />
+
+                    <p className='text-sm text-slate-700'>
+                      {activeTaskItem.description || t('noDescription')}
+                    </p>
+
+                    <div className='mt-2.5 space-y-1.5'>
+                      <div className='ipad-task-meta-row'>
+                        <UserRound className='h-4 w-4 text-slate-500' />
+                        <span>
+                          {activeTaskItem.completion?.completed_by_name
+                            || activeTaskItem.responsible_person?.name
+                            || t('unassigned')}
+                        </span>
+                      </div>
+                      {activeTaskItem.due_time ? (
+                        <div className='ipad-task-meta-row'>
+                          {choreState(activeTaskItem) === 'overdue' ? (
+                            <AlertCircle className='h-4 w-4 shrink-0 text-red-600' />
+                          ) : (
+                            <CalendarDays className='h-4 w-4 shrink-0 text-slate-500' />
+                          )}
+                          <span className={cn(choreState(activeTaskItem) === 'overdue' && 'font-medium text-red-600')}>
+                            {choreState(activeTaskItem) === 'overdue' ? t('deadlineExpired') : t('deadline')}: {activeTaskItem.due_time}
+                          </span>
+                        </div>
+                      ) : null}
+                    </div>
+
+                    {activeTaskItem.completion?.completed_by_name ? (
+                      <span className='ipad-done-tag'>
+                        {t('doneBy', { name: activeTaskItem.completion.completed_by_name })}
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <p className='py-4 text-center text-sm text-slate-500'>{t('noDue')}</p>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <BottomSheet
         open={personSheetOpen}
