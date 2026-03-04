@@ -41,6 +41,8 @@ const TEXT = {
     chores: 'Chores',
     weeks: 'Week owners',
     settings: 'Settings',
+    weekOwnerLabel: 'Week owner',
+    weekOwnerHeader: 'Week owner: {name}',
     previousWeek: 'Previous week',
     nextWeek: 'Next week',
     weekLabel: 'Week {number}',
@@ -76,6 +78,8 @@ const TEXT = {
     chores: 'Gjøremål',
     weeks: 'Ukeansvar',
     settings: 'Innstillinger',
+    weekOwnerLabel: 'Ukeansvarlig',
+    weekOwnerHeader: 'Ukeansvarlig: {name}',
     previousWeek: 'Forrige uke',
     nextWeek: 'Neste uke',
     weekLabel: 'Uke {number}',
@@ -139,11 +143,16 @@ export function IpadPage() {
   const [slideDirection, setSlideDirection] = useState('right');
   const [activeTab, setActiveTab] = useState('chores');
   const keepTaskDialogOpenRef = useRef(false);
+  const personOptionRefs = useRef(new Map());
 
   const locale = localeForLanguage(language);
   const t = (key, vars = {}) => tr(TEXT, language, key, vars);
 
   const days = useMemo(() => mondayToFridayDates(weekStart), [weekStart]);
+  const currentWeekOwner = useMemo(
+    () => weekOwners.find((row) => String(row.week_start) === String(weekStart)) || null,
+    [weekOwners, weekStart]
+  );
   const activeTaskItem = useMemo(() => {
     if (!activeTask) return null;
     const items = weekPlans[activeTask.dateKey] || [];
@@ -203,6 +212,21 @@ export function IpadPage() {
     if (!selectedPersonId) return;
     window.localStorage.setItem(STORAGE_KEY, String(selectedPersonId));
   }, [selectedPersonId]);
+
+  useEffect(() => {
+    if (!personSheetOpen || !selectedPersonId) {
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      const target = personOptionRefs.current.get(String(selectedPersonId));
+      if (target && typeof target.scrollIntoView === 'function') {
+        target.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'smooth' });
+      }
+    }, 120);
+
+    return () => clearTimeout(timer);
+  }, [personSheetOpen, selectedPersonId]);
 
   function preferredPersonIdForItem(item) {
     const assignedId = item?.responsible_person?.id ? String(item.responsible_person.id) : '';
@@ -357,6 +381,14 @@ export function IpadPage() {
                 <p className='ipad-app-title'>{t('title')}</p>
                 <p className='ipad-app-subtitle'>{t('subtitle')}</p>
               </div>
+              <div className='min-w-[220px] text-right'>
+                <p className='text-[11px] font-semibold uppercase tracking-wide text-slate-500'>
+                  {t('weekOwnerLabel')}
+                </p>
+                <p className='mt-0.5 truncate text-lg font-semibold text-theme-700'>
+                  {currentWeekOwner?.person_name || t('unassigned')}
+                </p>
+              </div>
             </div>
 
             {activeTab !== 'settings' ? (
@@ -492,21 +524,23 @@ export function IpadPage() {
                                       </p>
                                     </div>
 
-                                    <div className='mt-1.5 flex items-center gap-1.5'>
+                                    <div className='mt-1.5 space-y-1'>
                                       <span className='truncate text-xs text-slate-500'>
                                         {item.completion?.completed_by_name
                                           || item.responsible_person?.name
                                           || t('unassigned')}
                                       </span>
                                       {item.due_time ? (
-                                        <span
-                                          className={cn(
-                                            'ml-auto shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium',
-                                            state === 'overdue' ? 'bg-red-50 text-red-600' : 'bg-slate-100 text-slate-600'
-                                          )}
-                                        >
-                                          {item.due_time}
-                                        </span>
+                                        <div className='flex items-center'>
+                                          <span
+                                            className={cn(
+                                              'shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium',
+                                              state === 'overdue' ? 'bg-red-50 text-red-600' : 'bg-slate-100 text-slate-600'
+                                            )}
+                                          >
+                                            {item.due_time}
+                                          </span>
+                                        </div>
                                       ) : null}
                                     </div>
                                   </button>
@@ -751,6 +785,14 @@ export function IpadPage() {
               return (
                 <button
                   key={person.id}
+                  ref={(element) => {
+                    const key = String(person.id);
+                    if (element) {
+                      personOptionRefs.current.set(key, element);
+                    } else {
+                      personOptionRefs.current.delete(key);
+                    }
+                  }}
                   type='button'
                   onClick={() => {
                     const nextId = String(person.id);
